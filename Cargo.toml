@@ -1,0 +1,11 @@
+[package]
+name = "rustnabi"
+version = "0.1.0"
+authors = ["aaron"]
+
+[dependencies]
+ws = "*"
+dotenv = "*"
+pretty_env_logger = "*"
+log = "*"
+postgres = "*"
