@@ -1,3 +1,4 @@
+/*
 use std::env::{var, VarError};
 
 pub fn get_env_var(key: &str, default_val: String) -> String {
@@ -19,3 +20,4 @@ pub fn get_env_var(key: &str, default_val: String) -> String {
         }
     }
 }
+*/

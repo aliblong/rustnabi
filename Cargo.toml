@@ -4,8 +4,12 @@ version = "0.1.0"
 authors = ["aaron"]
 
 [dependencies]
+chrono = "*"
 ws = "*"
 dotenv = "*"
 pretty_env_logger = "*"
 log = "*"
 postgres = "*"
+diesel = { version = "*", features = ["postgres", "network-address", "chrono"] }
+ipnetwork = "*" # IP address type that Diesel uses
+diesel-derive-enum = "*"
