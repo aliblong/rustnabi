@@ -3,18 +3,23 @@ extern crate pretty_env_logger;
 #[macro_use] extern crate log;
 
 mod db;
+mod util;
 
 fn main() {
     pretty_env_logger::init();
 
     match dotenv::dotenv() {
-        Err(dotenv::Error::EnvVar(_)) => warn!("Weird error when reading .env file."),
-        Err(dotenv::Error::Io(_)) => warn!("I/O error when reading .env file. File likely not found."),
-        Err(dotenv::Error::LineParse(entry)) => warn!("Malformed entry in .env file: '{}'.", entry),
-        _ => info!("Read .env file from {}", "test"),
+        Err(e) => warn!("Error reading .env file: {}", e),
+        _ => info!("Parsed .env file successfully"),
     }
 
-    db::init();
+    let db = match db::init() {
+        Err(e) => {
+            error!("DB connection error: {}", e);
+            return;
+        }
+        Ok(connection) => connection,
+    };
     //http_server::init();
     //ws_server::init();
 }
