@@ -5,6 +5,7 @@ extern crate ipnetwork;
 #[macro_use] extern crate diesel_derive_enum;
 #[macro_use] extern crate log;
 #[macro_use] extern crate diesel;
+extern crate ring;
 
 mod db;
 mod util;
@@ -17,6 +18,7 @@ fn main() {
         _ => info!("Parsed .env file successfully"),
     }
 
+    let rand = ring::rand::SystemRandom::new();
     let db = db::connect();
     match db::add_user(&db, "testname", "testpw") {
         Ok(_) => info!("User successfully added"),

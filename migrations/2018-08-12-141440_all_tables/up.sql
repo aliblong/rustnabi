@@ -4,7 +4,8 @@ CREATE TYPE endcon AS ENUM ('inp', 'norm', 'so', 'to', 'kill');  -- in progress,
 CREATE TABLE users (
     id                   SERIAL        PRIMARY KEY,
     name                 TEXT          NOT NULL  UNIQUE,
-    pw                   TEXT          NOT NULL, -- Hashed with SHA-256
+    pw                   TEXT          NOT NULL, -- Hashed and salted with SHA-256
+    salt                 TEXT          NOT NULL,
     last_ip              INET          NULL,
     admin                SMALLINT      NOT NULL  DEFAULT 0,
     -- tester               INT           NOT NULL  DEFAULT 0,
