@@ -6,9 +6,16 @@ extern crate ipnetwork;
 #[macro_use] extern crate log;
 #[macro_use] extern crate diesel;
 extern crate ring;
+#[macro_use] extern crate lazy_static;
 
 mod db;
 mod util;
+
+use ring::rand::SystemRandom;
+
+lazy_static! {
+    pub static ref SYSRAND: SystemRandom = SystemRandom::new();
+}
 
 fn main() {
     pretty_env_logger::init();
@@ -18,11 +25,10 @@ fn main() {
         _ => info!("Parsed .env file successfully"),
     }
 
-    let rand = ring::rand::SystemRandom::new();
     let db = db::connect();
-    match db::add_user(&db, "testname", "testpw") {
+    match db::add_user(&db, "testname4", b"asdf".to_vec()) {
         Ok(_) => info!("User successfully added"),
-        Err(e) => info!("Error adding user: {}", e),
+        Err(e) => warn!("Error adding user: {}", e),
     }
     //http_server::init();
     //ws_server::init();

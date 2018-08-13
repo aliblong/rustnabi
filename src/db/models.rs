@@ -18,7 +18,8 @@ pub enum Endcon {
 pub struct User {
     id: i32,
     name: String,
-    pw: String,
+    pw: Vec<u8>,
+    salt: Vec<u8>,
     last_ip: Option<IpNetwork>,
     admin: i16,
     datetime_created: DT,
@@ -30,5 +31,6 @@ pub struct User {
 #[table_name="users"]
 pub struct NewUser<'a> {
     pub name: &'a str,
-    pub pw: &'a str,
+    pub pw: &'a [u8],
+    pub salt: &'a [u8],
 }

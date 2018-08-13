@@ -14,3 +14,4 @@ diesel = { version = "*", features = ["postgres", "network-address", "chrono"] }
 ipnetwork = "*" # IP address type that Diesel uses
 diesel-derive-enum = "*"
 ring = "*"
+lazy_static= "*" # for using a global RNG, as recommended in `ring` docs

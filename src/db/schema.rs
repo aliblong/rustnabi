@@ -55,7 +55,8 @@ table! {
     users (id) {
         id -> Int4,
         name -> Text,
-        pw -> Text,
+        pw -> Bytea,
+        salt -> Bytea,
         last_ip -> Nullable<Inet>,
         admin -> Int2,
         datetime_created -> Timestamp,
