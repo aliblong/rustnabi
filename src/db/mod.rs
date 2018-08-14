@@ -9,29 +9,59 @@ use std::vec::Vec;
 #[allow(proc_macro_derive_resolution_fallback)]
 #[allow(unused_imports)]
 pub mod schema;
+use self::schema::users;
+// A bunch of aliases including one that allows directly referring to a table by its name
+//use self::schema::users::dsl::*;
 #[allow(proc_macro_derive_resolution_fallback)]
 pub mod models;
 
-pub fn connect() -> PgConnection {
-    let database_url = env::var("DATABASE_URL")
-        .expect("DATABASE_URL must be set");
-    PgConnection::establish(&database_url)
-        .expect(&format!("Error connecting to {}", database_url))
+pub type AuthResult = Result<(), ()>;
+
+pub struct Db {
+    conn: PgConnection,
 }
 
-pub fn add_user<'a>(conn: &PgConnection, name: &'a str, mut pw: Vec<u8>) -> QueryResult<models::User> {
-    let salt = generate_salt();
-    let salted_pw = apply_salt(&mut pw, salt.clone());
-    let hashed_salted_pw = hash(salted_pw.as_slice());
-    use self::schema::users;
-    let new_user = models::NewUser {
-        name: name,
-        pw: hashed_salted_pw.as_slice(),
-        salt: salt.as_slice(),
-    };
-    diesel::insert_into(users::table)
-        .values(&new_user)
-        .get_result(conn)
+impl Db {
+    pub fn connect() -> Db {
+        let database_url = env::var("DATABASE_URL")
+            .expect("DATABASE_URL must be set");
+        Db {
+            conn: PgConnection::establish(&database_url)
+                .expect(&format!("Error connecting to {}", database_url)),
+        }
+    }
+    pub fn authenticate_user<'a>(&self, name: &'a str, mut pw: Vec<u8>) -> AuthResult { //-> QueryResult<models::User> {
+        let res: QueryResult<(Vec<u8>, Vec<u8>)> = users::table.filter(users::name.eq(name)).select((users::pw, users::salt)).first(&self.conn);
+        match res {
+            Err(_) => {
+                self.add_user(name, pw);
+                Ok(())
+            },
+            Ok((auth_pw, salt)) => {
+                let salted_pw = apply_salt(&mut pw, salt);
+                let hashed_salted_pw = hash(salted_pw.as_slice());
+                match (hashed_salted_pw == auth_pw) {
+                    false => Err(()),
+                    true => Ok(()),
+                }
+            },
+        }
+    }
+    pub fn add_user<'a>(&self, name: &'a str, mut pw: Vec<u8>) {
+        let salt = generate_salt();
+        let salted_pw = apply_salt(&mut pw, salt.clone());
+        let hashed_salted_pw = hash(salted_pw.as_slice());
+        let new_user = models::NewUser {
+            name: name,
+            pw: hashed_salted_pw.as_slice(),
+            salt: salt.as_slice(),
+        };
+        let res: models::User = diesel::insert_into(users::table)
+            .values(&new_user)
+            .get_result(&self.conn)
+            .expect("Failed to add user");
+    }
+
 }
 
 fn generate_salt() -> Vec<u8> {

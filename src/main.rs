@@ -10,9 +10,12 @@ extern crate ring;
 
 mod db;
 mod util;
+//mod login;
 
 use ring::rand::SystemRandom;
 
+/// According to `ring` docs, one (threadsafe) instance of SystemRandom should be used for the
+/// entire app
 lazy_static! {
     pub static ref SYSRAND: SystemRandom = SystemRandom::new();
 }
@@ -22,13 +25,15 @@ fn main() {
 
     match dotenv::dotenv() {
         Err(e) => warn!("Error reading .env file: {}", e),
-        _ => info!("Parsed .env file successfully"),
+        _ => warn!("Parsed .env file successfully"),
     }
 
-    let db = db::connect();
-    match db::add_user(&db, "testname4", b"asdf".to_vec()) {
-        Ok(_) => info!("User successfully added"),
-        Err(e) => warn!("Error adding user: {}", e),
+    let db = db::Db::connect();
+    let name = "testname3";
+    let pw = b"asdf";
+    match db.authenticate_user(name, pw.to_vec()) {
+        Err(_) => warn!("Invalid credentials for {}", name),
+        _ => warn!("User {} logged in successfully", name),
     }
     //http_server::init();
     //ws_server::init();
