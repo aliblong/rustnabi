@@ -7,11 +7,11 @@ use chrono::NaiveDateTime as DT;
 #[derive(Debug)]
 pub enum Endcon {
     //in progress, normal, strikeout, timeout, killed
-    inp,
-    norm,
-    so,
-    to,
-    kill,
+    Inp,
+    Norm,
+    Strike,
+    Time,
+    Kill,
 }
 
 #[derive(Queryable)]

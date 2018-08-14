@@ -1,5 +1,5 @@
 -- Your SQL goes here
-CREATE TYPE endcon AS ENUM ('inp', 'norm', 'so', 'to', 'kill');  -- in progress, normal, strikeout, timeout, killed
+CREATE TYPE endcon AS ENUM ('Inp', 'Norm', 'Strike', 'Time', 'Kill');  -- in progress, normal, strikeout, timeout, killed
 
 CREATE TABLE users (
     id                   SERIAL        PRIMARY KEY,
