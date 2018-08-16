@@ -1,5 +1,5 @@
--- Your SQL goes here
 CREATE TYPE endcon AS ENUM ('Inp', 'Norm', 'Strike', 'Time', 'Kill');  -- in progress, normal, strikeout, timeout, killed
+CREATE TYPE privilege AS ENUM ('Restart', 'Ban');  -- privileges to restart the server/pull from GitLab 
 
 CREATE TABLE users (
     id                   SERIAL        PRIMARY KEY,
@@ -7,7 +7,7 @@ CREATE TABLE users (
     pw                   BYTEA         NOT NULL, -- Hashed and salted with SHA-256
     salt                 BYTEA         NOT NULL, -- 32-byte like the hash
     last_ip              INET          NULL, -- Used to assist in IP banning
-    admin                SMALLINT      NOT NULL  DEFAULT 0,
+    privilege            privilege[]   NULL  DEFAULT array[]::privilege[],
     -- tester               INT           NOT NULL  DEFAULT 0,
     datetime_created     TIMESTAMP     NOT NULL  DEFAULT NOW(),
     datetime_last_login  TIMESTAMP     NOT NULL  DEFAULT NOW()
