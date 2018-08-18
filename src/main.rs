@@ -7,6 +7,7 @@ extern crate ipnetwork;
 #[macro_use] extern crate diesel;
 extern crate ring;
 #[macro_use] extern crate lazy_static;
+#[macro_use] extern crate serde_json;
 
 mod db;
 mod util;

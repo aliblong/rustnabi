@@ -10,8 +10,9 @@ dotenv = "*"
 pretty_env_logger = "*"
 log = "*"
 postgres = "*"
-diesel = { version = "*", features = ["postgres", "network-address", "chrono"] }
+diesel = { version = "*", features = ["postgres", "serde_json", "network-address", "chrono"] }
 ipnetwork = "*" # IP address type that Diesel uses
-diesel-derive-enum = "*"
+diesel-derive-enum = { version = "*", features = ["postgres"] }
+serde_json = "*"
 ring = "*"
 lazy_static= "*" # for using a global RNG, as recommended in `ring` docs

@@ -1,10 +1,10 @@
 use ipnetwork::IpNetwork;
 use super::schema::users;
 use chrono::NaiveDateTime as DT;
+use serde_json;
 
-// define your enum
-#[derive(DbEnum)]
-#[derive(Debug)]
+#[derive(DbEnum, Debug)]
+#[PgType = "endcon"]
 pub enum Endcon {
     //in progress, normal, strikeout, timeout, killed
     Inp,
@@ -14,18 +14,59 @@ pub enum Endcon {
     Kill,
 }
 
+#[derive(DbEnum, Debug)]
+#[PgType = "privilege"]
+pub enum Privilege {
+    Restart,
+    Ban,
+}
+
+#[derive(DbEnum, Debug)]
+#[PgType = "variant"]
+pub enum Variant {
+    Normal,
+    Orange,
+    Black,
+    Rainbow,
+    Dual,
+    DualRainbow,
+    WhiteRainbow,
+    WildCrazy,
+    Ambiguous,
+    RedBlue,
+    AcidTrip,
+    DarkRainbow,
+    DarkRainbowBlack,
+}
+
 #[derive(Queryable)]
 pub struct User {
     id: i32,
     name: String,
     pw: Vec<u8>,
     salt: Vec<u8>,
-    last_ip: Option<IpNetwork>,
-    admin: i16,
-    datetime_created: DT,
+    privileges: Vec<Privilege>,
+    last_ip: IpNetwork,
     datetime_last_login: DT,
+    datetime_created: DT,
 }
 
+#[derive(Queryable)]
+pub struct Table {
+    id: i32,
+    name: String,
+    players: Vec<i32>,
+    owner: i32,
+    variant: Variant,
+    timed: bool,
+    seed: String,
+    score: i16,
+    endcon: Endcon,
+    action: serde_json::Value,
+    datetime_created: DT,
+    datetime_started: DT,
+    datetime_finished: DT,
+}
 
 #[derive(Insertable)]
 #[table_name="users"]

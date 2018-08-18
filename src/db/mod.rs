@@ -40,7 +40,7 @@ impl Db {
             Ok((auth_pw, salt)) => {
                 let salted_pw = apply_salt(&mut pw, salt);
                 let hashed_salted_pw = hash(salted_pw.as_slice());
-                match (hashed_salted_pw == auth_pw) {
+                match hashed_salted_pw == auth_pw {
                     false => Err(()),
                     true => Ok(()),
                 }

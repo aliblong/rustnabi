@@ -1,16 +1,16 @@
-CREATE TYPE endcon AS ENUM ('Inp', 'Norm', 'Strike', 'Time', 'Kill');  -- in progress, normal, strikeout, timeout, killed
-CREATE TYPE privilege AS ENUM ('Restart', 'Ban');  -- privileges to restart the server/pull from GitLab 
+CREATE TYPE endcon AS ENUM ('inp', 'norm', 'strike', 'time', 'kill');  -- in progress, normal, strikeout, timeout, killed
+CREATE TYPE privilege AS ENUM ('restart', 'ban');  -- privileges to restart the server/pull from GitLab 
+CREATE TYPE variant AS ENUM ('normal', 'orange', 'black', 'rainbow', 'dual', 'dual_rainbow', 'white_rainbow', 'wild_crazy', 'ambiguous', 'red_blue', 'acid_trip', 'dark_rainbow', 'dark_rainbow_black');
 
 CREATE TABLE users (
     id                   SERIAL        PRIMARY KEY,
     name                 TEXT          NOT NULL  UNIQUE,
     pw                   BYTEA         NOT NULL, -- Hashed and salted with SHA-256
     salt                 BYTEA         NOT NULL, -- 32-byte like the hash
-    last_ip              INET          NULL, -- Used to assist in IP banning
-    privilege            privilege[]   NULL  DEFAULT array[]::privilege[],
-    -- tester               INT           NOT NULL  DEFAULT 0,
-    datetime_created     TIMESTAMP     NOT NULL  DEFAULT NOW(),
-    datetime_last_login  TIMESTAMP     NOT NULL  DEFAULT NOW()
+    privilege            privilege[]   NOT NULL  DEFAULT array[]::privilege[],
+    last_ip              INET          NOT NULL, -- Used to assist in IP banning
+    datetime_last_login  TIMESTAMP     NOT NULL  DEFAULT NOW(),
+    datetime_created     TIMESTAMP     NOT NULL  DEFAULT NOW()
 );
 CREATE INDEX users_index_name ON users (name);
 
@@ -20,10 +20,10 @@ CREATE TABLE games (
     --num_players        SMALLINT      NOT NULL  DEFAULT 2,
     players            INT[]         NOT NULL,
     owner              INT           NOT NULL,
-    variant            SMALLINT      NOT NULL,
+    variant            variant       NOT NULL,
     timed              BOOLEAN       NOT NULL,
     seed               TEXT          NOT NULL, -- like "p2v0s1"
-    score              INT           NOT NULL,
+    score              SMALLINT      NOT NULL,
     endcon             endcon        NOT NULL,
     action             jsonb         NOT NULL, /* JSON */
     datetime_created   TIMESTAMP     NOT NULL  DEFAULT '1970-01-01 00:00:00',
