@@ -12,10 +12,13 @@ pub mod schema;
 use self::schema::users;
 // A bunch of aliases including one that allows directly referring to a table by its name
 //use self::schema::users::dsl::*;
-#[allow(proc_macro_derive_resolution_fallback)]
+#[allow(proc_macro_derive_resolution_fallback, dead_code)]
 pub mod models;
 
 pub type AuthResult = Result<(), ()>;
+
+use ipnetwork::IpNetwork;
+use util::current_dt;
 
 pub struct Db {
     conn: PgConnection,
@@ -30,31 +33,65 @@ impl Db {
                 .expect(&format!("Error connecting to {}", database_url)),
         }
     }
-    pub fn authenticate_user<'a>(&self, name: &'a str, mut pw: Vec<u8>) -> AuthResult { //-> QueryResult<models::User> {
-        let res: QueryResult<(Vec<u8>, Vec<u8>)> = users::table.filter(users::name.eq(name)).select((users::pw, users::salt)).first(&self.conn);
-        match res {
+    // This function has an uncomfortable number of nested scopes, but refactoring is a pain since all the
+    // types from Diesel expressions are very complicated
+    pub fn authenticate_user<'a>(&self, name: &'a str, pw: Vec<u8>, ip: IpNetwork) -> AuthResult { //-> QueryResult<models::User> {
+        let user_record = users::table.filter(users::name.eq(name));
+        let user_exists: QueryResult<(Vec<u8>, Vec<u8>, Vec<IpNetwork>)> =
+            user_record.select((
+                users::pw,
+                users::salt,
+                users::ip,
+            ))
+            .first(&self.conn);
+        match user_exists {
+            // If user doesn't exist, add them to the database;
             Err(_) => {
-                self.add_user(name, pw);
+                self.add_user(name, pw, ip);
                 Ok(())
             },
-            Ok((auth_pw, salt)) => {
-                let salted_pw = apply_salt(&mut pw, salt);
-                let hashed_salted_pw = hash(salted_pw.as_slice());
-                match hashed_salted_pw == auth_pw {
+            // otherwise, authenticate and update their list of ip addresses and last login time
+            Ok((auth_pw, salt, mut ips)) => {
+                match check_pw(pw, salt, &auth_pw) {
                     false => Err(()),
-                    true => Ok(()),
+                    true => {
+                        // if their list of ip addresses already contains the current one, don't
+                        // update the list
+                        match ips.contains(&ip) {
+                            true => {
+                                diesel::update(user_record)
+                                    .set(users::datetime_last_login.eq(diesel::dsl::now))
+                                    .execute(&self.conn)
+                                    .expect("Failed to update user");
+                            },
+                            false => {
+                                ips.push(ip);
+                                diesel::update(user_record)
+                                    .set((
+                                        users::ip.eq(ips),
+                                        users::datetime_last_login.eq(diesel::dsl::now),
+                                    ))
+                                    .execute(&self.conn)
+                                    .expect("Failed to update user");
+                            },
+                        };
+                        Ok(())
+                    },
                 }
             },
         }
     }
-    pub fn add_user<'a>(&self, name: &'a str, mut pw: Vec<u8>) {
+    fn add_user<'a>(&self, name: &'a str, pw: Vec<u8>, ip: IpNetwork) {
         let salt = generate_salt();
-        let salted_pw = apply_salt(&mut pw, salt.clone());
+        let salted_pw = apply_salt(pw, salt.clone());
         let hashed_salted_pw = hash(salted_pw.as_slice());
+        let ip_vec = vec![ip];
+        let ip_slice = ip_vec.as_slice();
         let new_user = models::NewUser {
             name: name,
             pw: hashed_salted_pw.as_slice(),
             salt: salt.as_slice(),
+            ip: ip_slice,
         };
         let res: models::User = diesel::insert_into(users::table)
             .values(&new_user)
@@ -70,14 +107,20 @@ fn generate_salt() -> Vec<u8> {
     salt
 }
 
-fn apply_salt(pw: &mut Vec<u8>, mut salt: Vec<u8>) -> Vec<u8> {
+fn apply_salt(mut pw: Vec<u8>, mut salt: Vec<u8>) -> Vec<u8> {
     // Can't chain clone() into append() because the expression needs an explicit lifetime
     // https://github.com/rust-lang/rust/issues/27063
-    salt.append(pw);
+    salt.append(&mut pw);
     salt
 }
 
 fn hash(pw: &[u8]) -> Vec<u8> {
     use ring::digest;
     digest::digest(&digest::SHA256, pw).as_ref().to_vec()
+}
+
+fn check_pw(pw: Vec<u8>, salt: Vec<u8>, auth_pw: &Vec<u8>) -> bool {
+    let salted_pw = apply_salt(pw, salt);
+    let hashed_salted_pw = hash(salted_pw.as_slice());
+    hashed_salted_pw == *auth_pw
 }

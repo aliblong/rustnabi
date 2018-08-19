@@ -1,4 +1,9 @@
 /*
+use chrono::{Utc, NaiveDateTime};
+
+pub fn current_dt() -> NaiveDateTime {
+    Utc::now().naive_utc()
+}
 use std::env::{var, VarError};
 
 pub fn get_env_var(key: &str, default_val: String) -> String {

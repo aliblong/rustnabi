@@ -7,7 +7,7 @@ extern crate ipnetwork;
 #[macro_use] extern crate diesel;
 extern crate ring;
 #[macro_use] extern crate lazy_static;
-#[macro_use] extern crate serde_json;
+extern crate serde_json;
 
 mod db;
 mod util;
@@ -26,13 +26,15 @@ fn main() {
 
     match dotenv::dotenv() {
         Err(e) => warn!("Error reading .env file: {}", e),
-        _ => warn!("Parsed .env file successfully"),
+        _ => info!("Parsed .env file successfully"),
     }
 
     let db = db::Db::connect();
     let name = "testname3";
     let pw = b"asdf";
-    match db.authenticate_user(name, pw.to_vec()) {
+    use ipnetwork::IpNetwork;
+    let ip = IpNetwork::V4("192.168.0.2/16".parse().unwrap());
+    match db.authenticate_user(name, pw.to_vec(), ip) {
         Err(_) => warn!("Invalid credentials for {}", name),
         _ => warn!("User {} logged in successfully", name),
     }

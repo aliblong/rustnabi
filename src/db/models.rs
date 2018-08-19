@@ -4,7 +4,6 @@ use chrono::NaiveDateTime as DT;
 use serde_json;
 
 #[derive(DbEnum, Debug)]
-#[PgType = "endcon"]
 pub enum Endcon {
     //in progress, normal, strikeout, timeout, killed
     Inp,
@@ -14,15 +13,13 @@ pub enum Endcon {
     Kill,
 }
 
-#[derive(DbEnum, Debug)]
-#[PgType = "privilege"]
-pub enum Privilege {
-    Restart,
-    Ban,
-}
+//#[derive(DbEnum, Debug)]
+//pub enum Privilege {
+//    Restart,
+//    Ban,
+//}
 
 #[derive(DbEnum, Debug)]
-#[PgType = "variant"]
 pub enum Variant {
     Normal,
     Orange,
@@ -45,8 +42,9 @@ pub struct User {
     name: String,
     pw: Vec<u8>,
     salt: Vec<u8>,
-    privileges: Vec<Privilege>,
-    last_ip: IpNetwork,
+    restart_privilege: bool,
+    ban_privilege: bool,
+    ip: Vec<IpNetwork>,
     datetime_last_login: DT,
     datetime_created: DT,
 }
@@ -74,4 +72,5 @@ pub struct NewUser<'a> {
     pub name: &'a str,
     pub pw: &'a [u8],
     pub salt: &'a [u8],
+    pub ip: &'a [IpNetwork],
 }
