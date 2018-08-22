@@ -2,6 +2,15 @@
 name = "rustnabi"
 version = "0.1.0"
 authors = ["aaron"]
+build = "src/build.rs"
+
+[build-dependencies]
+serde = "*"
+#serde_json = "*"
+serde_yaml = "*"
+serde_derive = "*"
+dotenv = "*"
+indexmap = { version = "*", features = ["serde-1"] }
 
 [dependencies]
 ws = "*"

@@ -1,0 +1,31 @@
+# All maps, including the root, should be parsed into *ordered* maps
+# I've forgone tagging with !!omap since I don't know if this tag can be applied
+# to the root
+normal:
+  blue:
+    - blue
+  green:
+    - green
+  yellow:
+    - yellow
+  red:
+    - red
+  purple:
+    - purple
+rainbow:
+  blue:
+    - blue
+  green:
+    - green
+  yellow:
+    - yellow
+  red:
+    - red
+  purple:
+    - purple
+  rainbow:
+    - blue
+    - green
+    - yellow
+    - red
+    - purple
