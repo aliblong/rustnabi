@@ -2,10 +2,10 @@ CREATE TYPE endcon AS ENUM ('inp', 'norm', 'strike', 'time', 'kill');  -- in pro
 CREATE TYPE variant AS ENUM ('normal', 'orange', 'black', 'rainbow', 'dual', 'dual_rainbow', 'white_rainbow', 'wild_crazy', 'ambiguous', 'red_blue', 'acid_trip', 'dark_rainbow', 'dark_rainbow_black');
 
 -- https://stackoverflow.com/questions/8443716/postgres-unique-constraint-for-array
-CREATE OR REPLACE FUNCTION sort_ip(INET[])  RETURNS INET[] AS
-$$
-SELECT CASE WHEN $1[1] > $1[2] THEN ARRAY[$1[2], $1[1]] ELSE $1 END;
-$$ LANGUAGE sql IMMUTABLE;
+--CREATE OR REPLACE FUNCTION sort_ip(INET[])  RETURNS INET[] AS
+--$$
+--SELECT CASE WHEN $1[1] > $1[2] THEN ARRAY[$1[2], $1[1]] ELSE $1 END;
+--$$ LANGUAGE sql IMMUTABLE;
 
 CREATE TABLE users (
     id                   SERIAL        PRIMARY KEY,
@@ -20,7 +20,7 @@ CREATE TABLE users (
 );
 CREATE INDEX users_index_name ON users (name);
 -- Prevents duplicate IP addresses being added for a given user
-CREATE UNIQUE INDEX unique_ip ON users (sort_ip(ip));
+--CREATE UNIQUE INDEX unique_ip ON users (sort_ip(ip));
 
 CREATE TABLE games (
     id                 SERIAL        PRIMARY KEY,
