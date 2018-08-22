@@ -4,14 +4,15 @@ version = "0.1.0"
 authors = ["aaron"]
 
 [dependencies]
-chrono = "*"
 ws = "*"
 dotenv = "*"
 pretty_env_logger = "*"
 log = "*"
 postgres = "*"
 diesel = { version = "*", features = ["postgres", "serde_json", "network-address", "chrono"] }
-ipnetwork = "*" # IP address type that Diesel uses
+# Diesel dependencies *must* version-match!
+ipnetwork = "0.12.8" # IP address type that Diesel uses
+chrono = "0.4.5"
 diesel-derive-enum = { version = "*", features = ["postgres"] }
 serde_json = "*"
 ring = "*"
