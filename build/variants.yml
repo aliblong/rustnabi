@@ -1,6 +1,8 @@
-# All maps, including the root, should be parsed into *ordered* maps
-# I've forgone tagging with !!omap since I don't know if this tag can be applied
-# to the root
+# This is the minimal representation of variant configurations.
+# Representation within the client-server communication protocol of suits and colors for a
+# particular variant shall be in order of appearance in this file.
+# Accordingly, all maps, including the root, should be parsed into *ordered* maps.
+# I've forgone tagging with !!omap since I don't think it's possible to tag the root as such.
 normal:
   blue:
     - blue
