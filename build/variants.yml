@@ -31,3 +31,17 @@ rainbow:
     - yellow
     - red
     - purple
+acid_trip:
+  blue: []
+  green: []
+  yellow: []
+  red: []
+  purple: []
+  orange: []
+  colors: # 'colors' shall not be used as a suit; it exists only to include colors in the variant
+    - blue
+    - green
+    - yellow
+    - red
+    - purple
+    - orange

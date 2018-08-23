@@ -32,7 +32,7 @@ fn main() {
         variants.insert(variant, IndexSet::new());
         let mut variant_colors = variants.get_mut(variant.as_str()).unwrap(); //not sure why as_str is needed here
         for (suit, suit_colors) in variant_def.iter() {
-            suits.insert(suit);
+            if suit != "colors" { suits.insert(suit); }
             for color in suit_colors.iter() {
                 colors.insert(color);
                 variant_colors.insert(color);

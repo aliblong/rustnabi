@@ -12,6 +12,7 @@ extern crate serde_json;
 mod db;
 mod util;
 //mod login;
+mod game;
 
 use ring::rand::SystemRandom;
 
