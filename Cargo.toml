@@ -2,15 +2,11 @@
 name = "rustnabi"
 version = "0.1.0"
 authors = ["aaron"]
-build = "src/build.rs"
-
-[build-dependencies]
-serde = "*"
-#serde_json = "*"
-serde_yaml = "*"
-serde_derive = "*"
-dotenv = "*"
-indexmap = { version = "*", features = ["serde-1"] }
+#build = "src/build.rs"
+#
+#[build-dependencies]
+#dotenv = "*"
+#indexmap = { version = "*", features = ["serde-1"] }
 
 [dependencies]
 ws = "*"
@@ -26,3 +22,7 @@ diesel-derive-enum = { version = "*", features = ["postgres"] }
 serde_json = "*"
 ring = "*"
 lazy_static= "*" # for using a global RNG, as recommended in `ring` docs
+
+serde = "*"
+serde_yaml = "*"
+serde_derive = "*"
