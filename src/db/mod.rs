@@ -3,7 +3,7 @@
 #[allow(proc_macro_derive_resolution_fallback, unused_imports)]
 mod schema;
 #[allow(proc_macro_derive_resolution_fallback, dead_code)]
-mod models;
+pub mod models;
 
 use diesel;
 use diesel::prelude::*;

@@ -5,13 +5,15 @@ extern crate ipnetwork;
 #[macro_use] extern crate diesel_derive_enum;
 #[macro_use] extern crate log;
 #[macro_use] extern crate diesel;
-extern crate ring;
+extern crate ring; // For crypto
 #[macro_use] extern crate lazy_static;
 
 extern crate serde;
 #[macro_use] extern crate serde_derive;
 extern crate serde_yaml;
 extern crate serde_json;
+
+extern crate rand; // For deck shuffling RNG
 
 mod db;
 mod util;
@@ -45,4 +47,98 @@ fn main() {
     }
     //http_server::init();
     //ws_server::init();
+}
+
+#[cfg(test)]
+mod test {
+    pub static NORMAL_VARIANT: &'static str =
+"---
+default_dist: &def_dist
+  - 3
+  - 2
+  - 2
+  - 2
+  - 1
+
+suits:
+  - dist: *def_dist
+    colors:
+      - 0
+  - dist: *def_dist
+    colors:
+      - 1
+  - dist: *def_dist
+    colors:
+      - 2
+  - dist: *def_dist
+    colors:
+      - 3
+  - dist: *def_dist
+    colors:
+      - 4
+";
+
+    pub static ACID_TRIP_VARIANT: &'static str =
+"---
+default_dist: &def_dist
+  - 3
+  - 2
+  - 2
+  - 2
+  - 1
+
+suits:
+  - dist: *def_dist
+    colors: []
+  - dist: *def_dist
+    colors: []
+  - dist: *def_dist
+    colors: []
+  - dist: *def_dist
+    colors: []
+  - dist: *def_dist
+    colors: []
+  - dist: *def_dist
+    colors: []
+";
+
+    pub static WILD_CRAZY_VARIANT: &'static str =
+"---
+default_dist: &def_dist
+  - 3
+  - 2
+  - 2
+  - 2
+  - 1
+
+suits:
+  - dist: *def_dist
+    colors:
+      - 0
+      - 1
+  - dist: *def_dist
+    colors:
+      - 0
+      - 2
+  - dist: *def_dist
+    colors:
+      - 1
+      - 2
+  - dist: *def_dist
+    colors: []
+  - dist: *def_dist
+    colors:
+      - 0
+      - 1
+      - 2
+      - 3
+  - dist:
+      - 1
+      - 1
+      - 1
+      - 1
+      - 1
+    colors:
+      - 3
+";
 }

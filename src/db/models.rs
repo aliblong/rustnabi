@@ -3,6 +3,8 @@ use super::schema::users;
 use chrono::NaiveDateTime as DT;
 use serde_json;
 
+pub type Index = usize;
+
 #[derive(DbEnum, Debug)]
 pub enum Endcon {
     //in progress, normal, strikeout, timeout, killed
@@ -65,6 +67,13 @@ pub struct Table {
     datetime_started: DT,
     datetime_finished: DT,
 }
+
+#[derive(Debug, Deserialize, Queryable)]
+pub struct Suit {
+    pub colors: Vec<Index>,
+    pub dist: Vec<Index>,
+}
+
 
 #[derive(Insertable)]
 #[table_name="users"]

@@ -22,6 +22,7 @@ diesel-derive-enum = { version = "*", features = ["postgres"] }
 serde_json = "*"
 ring = "*"
 lazy_static= "*" # for using a global RNG, as recommended in `ring` docs
+rand = "*"
 
 serde = "*"
 serde_yaml = "*"

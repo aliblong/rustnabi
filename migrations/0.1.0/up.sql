@@ -26,9 +26,12 @@ CREATE TABLE games (
     id                 SERIAL        PRIMARY KEY,
     name               TEXT          NOT NULL,
     --num_players        SMALLINT      NOT NULL  DEFAULT 2,
-    players            INT[]         NOT NULL,
+    --players            INT[]         NOT NULL,
     owner              INT           NOT NULL,
+    FOREIGN KEY (owner) REFERENCES users (id),
     variant            variant       NOT NULL,
+    hand_sizes_id      INT           NOT NULL,
+    FOREIGN KEY (hand_sizes_id) REFERENCES hand_sizes(id),
     timed              BOOLEAN       NOT NULL,
     seed               TEXT          NOT NULL, -- like "p2v0s1"
     score              SMALLINT      NOT NULL,
@@ -36,12 +39,19 @@ CREATE TABLE games (
     action             jsonb         NOT NULL, /* JSON */
     datetime_created   TIMESTAMP     NOT NULL  DEFAULT '1970-01-01 00:00:00',
     datetime_started   TIMESTAMP     NOT NULL  DEFAULT '1970-01-01 00:00:00',
-    datetime_finished  TIMESTAMP     NOT NULL  DEFAULT NOW(),
-    FOREIGN KEY (owner) REFERENCES users (id)
+    datetime_finished  TIMESTAMP     NOT NULL  DEFAULT NOW()
 );
 CREATE INDEX games_index_players ON games (players);
 CREATE INDEX games_index_variant ON games (variant);
 CREATE INDEX games_index_seed ON games (seed);
+
+CREATE TABLE participants (
+    id  SERIAL  PRIMARY KEY,
+  , game_id  INT  NOT NULL
+  , FOREIGN KEY(game_id) REFERENCES games(id) ON DELETE CASCADE
+  , user_id  INT  NOT NULL
+  , FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 
 CREATE TABLE game_time_controls (
     id                 INT           NOT NULL  PRIMARY KEY,
@@ -62,4 +72,30 @@ CREATE TABLE banned_ips (
     FOREIGN KEY(admin_responsible) REFERENCES users(id),
     reason             TEXT           NULL      DEFAULT NULL,
     datetime_banned    TIMESTAMP      NOT NULL  DEFAULT NOW()
+);
+
+CREATE TABLE variants (
+    id  SERIAL  PRIMARY KEY
+  , name  TEXT  NOT NULL
+);
+
+CREATE TABLE dists (
+    id  SERIAL  PRIMARY KEY
+  , dist  SMALLINT[]  NOT NULL
+);
+
+CREATE TABLE suits (
+    id  SERIAL  PRIMARY KEY
+  , variant_id  INT  NOT NULL
+  , FOREIGN KEY(variant_id) REFERENCES variants(id) ON DELETE CASCADE
+  , suit_index  SMALLINT  NOT NULL
+  , colors  SMALLINT[]  NOT NULL
+  , dist_id  INT  NOT NULL
+  , FOREIGN KEY(dist_id) REFERENCES dists(id) ON DELETE CASCADE
+  , dist  SMALLINT[]  NOT NULL
+);
+
+CREATE TABLE hand_sizes (
+    id  SERIAL  PRIMARY KEY
+  , hand_sizes  SMALLINT[]  NOT NULL
 );
