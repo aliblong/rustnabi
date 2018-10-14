@@ -1,3 +1,4 @@
+#![feature(rust_2018_preview, uniform_paths)]
 extern crate chrono;
 extern crate dotenv;
 extern crate pretty_env_logger;
@@ -15,10 +16,13 @@ extern crate serde_json;
 
 extern crate rand; // For deck shuffling RNG
 
+extern crate hyper; // http
+
 mod db;
 mod util;
 //mod login;
 mod game;
+mod http;
 
 use ring::rand::SystemRandom;
 
@@ -45,7 +49,7 @@ fn main() {
         Err(_) => warn!("Invalid credentials for {}", name),
         _ => warn!("User {} logged in successfully", name),
     }
-    //http_server::init();
+    http::init();
     //ws_server::init();
 }
 

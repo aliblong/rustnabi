@@ -1,6 +1,8 @@
 use serde_yaml;
 use db::models::{Suit, Index};
 
+pub type ColorSuitMap = Vec<Vec<Index>>;
+
 #[derive(Debug, Deserialize)]
 pub struct Variant {
     pub suits: Vec<Suit>,
@@ -11,18 +13,22 @@ impl Variant {
     pub fn new(yaml: &str) -> Variant {
         serde_yaml::from_str(yaml).expect("Bad yaml")
     }
+
     pub fn suit(&self, i: Index) -> Result<&Suit, ()> {
         match self.suits.get(i as usize) {
             Some(suit) => Ok(suit),
             None => Err(()),
         }
     }
-    pub fn suits(&self, i: Index) -> Vec<Index> {
+
+    // Suits corresponding to a certain color
+    pub fn suits(&self, color: Index) -> Vec<Index> {
         self.suits.iter().enumerate()
-            .filter(|(j, suit)| suit.colors.contains(&i))
-            .map(|(j, _)| j as Index)
+            .filter(|(_suit_index, suit)| suit.colors.contains(&color))
+            .map(|(suit_index, _suit)| suit_index)
             .collect()
     }
+
     // It's possible to determine the number of colors from the minimal representation of a variant
     // used in this model, so this number isn't stored in the data structure.
     pub fn n_colors(&self) -> Index {
@@ -46,9 +52,10 @@ impl Variant {
         };
         nominal_colors + addl_colors
     }
+
     // The variant is modeled as a map of {suit -> colors, ... }.
     // The inverse map { color -> suits } is useful for resolving clues.
-    pub fn color_suit_map(&self) -> Vec<Vec<Index>> {
+    pub fn color_suit_map(&self) -> ColorSuitMap {
         let mut res: Vec<Vec<Index>> = Vec::with_capacity(2);
         for color in (0 .. self.n_colors()) {
             res.push(self.suits(color));

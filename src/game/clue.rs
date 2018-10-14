@@ -1,11 +1,15 @@
 use super::*;
 
-pub enum ClueType {
-    Color,
-    Rank,
+pub enum Clue {
+    Color(Index, ColorSuitMap),
+    Rank(Index),
 }
 
-pub struct Clue {
-    pub ty: ClueType,
-    pub val: Index,
+impl Clue {
+    pub fn matches(&self, card: &Card) -> bool {
+        match self {
+            Clue::Color(val, map) => map[*val].contains(&card.suit),
+            Clue::Rank(val) => card.suit == *val,
+        }
+    }
 }
