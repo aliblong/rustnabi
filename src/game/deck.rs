@@ -1,7 +1,9 @@
 use super::card::Card;
 use super::variant::Variant;
 use db::models::Index;
-use rand::{Rng, SeedableRng, ChaChaRng};
+use rand::prng::XorShiftRng;
+use rand::{SeedableRng, Rng};
+use hash::hash;
 
 #[derive(Debug)]
 pub struct Deck {
@@ -19,16 +21,27 @@ impl Deck {
         Deck { cards }
     }
 
-    pub fn shuffle(&mut self, seed: &str) {
-        // Seeds in `rand` are of type Vec<u32>
-        let seed = seed.bytes().map(|byte| byte as u32).collect::<Vec<u32>>();
-        let mut rng = ChaChaRng::from_seed(&seed);
+    pub fn shuffle(&mut self, seed_str: &str) {
+        // Seeds in for XorShift are of type [u8; 16]
+        let hashed_seed = hash(seed_str.as_bytes());
+        let seed: [u8; 16] = seed_from_hash(hashed_seed.as_slice());
+        let mut rng = XorShiftRng::from_seed(seed);
         rng.shuffle(self.cards.as_mut_slice());
     }
 
     pub fn draw(&mut self) -> Option<Card> {
         self.cards.pop()
     }
+}
+
+// ONLY call this with output from hash, which will be more than 16 bytes long.
+fn seed_from_hash(hash: &[u8]) -> [u8; 16] {
+    // Need to either default initialize or run unsafe code, and the former seems like a
+    // negligible perf cost.
+    let mut res: [u8; 16] = Default::default();
+    let hash = &hash[..16]; // panics if not enough data
+    res.copy_from_slice(hash);
+    res
 }
 
 #[cfg(test)]

@@ -1,5 +1,5 @@
 use ipnetwork::IpNetwork;
-use super::schema::users;
+use super::schema::*;
 use chrono::NaiveDateTime as DT;
 use serde_json;
 
@@ -52,6 +52,18 @@ pub struct User {
 }
 
 #[derive(Queryable)]
+pub struct IP {
+    id: i32,
+    ip: IpNetwork,
+}
+
+#[derive(Queryable)]
+pub struct UserIP {
+    user_id: i32,
+    ip_id: i32,
+}
+
+#[derive(Queryable)]
 pub struct Table {
     id: i32,
     name: String,
@@ -81,5 +93,17 @@ pub struct NewUser<'a> {
     pub name: &'a str,
     pub pw: &'a [u8],
     pub salt: &'a [u8],
-    pub ip: &'a [IpNetwork],
+}
+
+#[derive(Insertable)]
+#[table_name="ips"]
+pub struct NewIP<'a> {
+    pub ip: &'a IpNetwork,
+}
+
+#[derive(Insertable)]
+#[table_name="user_ips"]
+pub struct NewUserIP {
+    pub user_id: i32,
+    pub ip_id: i32,
 }

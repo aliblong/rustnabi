@@ -11,13 +11,15 @@ use diesel::prelude::*;
 use std::vec::Vec;
 use std::env;
 
-use ring::rand::SecureRandom;
+use hash::hash;
 
-use self::schema::users;
+use self::schema::{users, ips, user_ips};
 // A bunch of aliases including one that allows directly referring to a table by its name
 //use self::schema::users::dsl::*;
 
 use ipnetwork::IpNetwork;
+use super::SYSRAND;
+use ring::rand::SecureRandom;
 
 pub type AuthResult = Result<(), AuthError>;
 pub enum AuthError {
@@ -41,11 +43,11 @@ impl Db {
     // functions is a pain since all the types from Diesel expressions are very complicated.
     pub fn authenticate_user<'a>(&self, name: &'a str, pw: Vec<u8>, ip: IpNetwork) -> AuthResult { //-> QueryResult<models::User> {
         let user_record = users::table.filter(users::name.eq(name));
-        let user_exists: QueryResult<(Vec<u8>, Vec<u8>, Vec<IpNetwork>)> =
+        let user_exists: QueryResult<(i32, Vec<u8>, Vec<u8>)> =
             user_record.select((
+                users::id,
                 users::pw,
                 users::salt,
-                users::ip,
             ))
             .first(&self.conn);
         match user_exists {
@@ -55,7 +57,7 @@ impl Db {
                 Ok(())
             },
             // otherwise, authenticate and update their list of ip addresses and last login time
-            Ok((auth_pw, salt, mut ips)) => {
+            Ok((user_id, auth_pw, salt)) => {
                 match check_pw(pw, salt, &auth_pw) {
                     false => Err(AuthError::WrongPw),
                     true => {
@@ -63,51 +65,66 @@ impl Db {
                             .set(users::datetime_last_login.eq(diesel::dsl::now))
                             .execute(&self.conn)
                             .expect("Failed to update user");
-
-                        // if their list of ip addresses already contains the current one, don't
-                        // update the list
-                        match ips.contains(&ip) {
-                            false => {
-                                ips.push(ip);
-                                diesel::update(user_record)
-                                    .set(users::ip.eq(ips))
-                                    .execute(&self.conn)
-                                    .expect("Failed to update user");
-                            },
-                            true => (),
-                        };
+                        self.add_ip(user_id, ip);
                         Ok(())
-                    },
+                    }
                 }
             },
         }
     }
+
     fn add_user<'a>(&self, name: &'a str, pw: Vec<u8>, ip: IpNetwork) {
         let salt = generate_salt();
         let salted_pw = apply_salt(pw, salt.clone());
         let hashed_salted_pw = hash(salted_pw.as_slice());
 
-        // IP address must be put in a vec because of how it's stored in the DB
-        let ip_vec = vec![ip];
-        let ip_slice = ip_vec.as_slice();
-
         let new_user = models::NewUser {
             name: name,
             pw: hashed_salted_pw.as_slice(),
             salt: salt.as_slice(),
-            ip: ip_slice,
         };
-        diesel::insert_into(users::table)
+        let user_id = diesel::insert_into(users::table)
             .values(&new_user)
+            .returning(users::id)
             .execute(&self.conn)
             .expect("Failed to add user");
+        // TODO: figure out why user ID is usize rather than i32
+        self.add_ip(user_id as i32, ip);
     }
 
+    fn add_ip(&self, user_id: i32, ip: IpNetwork) {
+        let ip_exists = ips::table
+            .filter(ips::ip.eq(ip))
+            .select(
+                ips::id,
+            )
+            .first(&self.conn);
+        match ip_exists {
+            Err(_) => {
+                let ip_id = diesel::insert_into(ips::table)
+                    .values(models::NewIP { ip: &ip })
+                    .returning(ips::id)
+                    .get_result(&self.conn)
+                    .expect("Failed to add IP address to db");
+                diesel::insert_into(user_ips::table)
+                    .values(models::NewUserIP { user_id, ip_id})
+                    .execute(&self.conn)
+                    .expect("Logic error: IP addr exists but wasn't selected");
+            },
+            Ok(ip_id) => {
+                diesel::insert_into(user_ips::table)
+                    .values(models::NewUserIP { user_id, ip_id})
+                    .on_conflict_do_nothing()
+                    .execute(&self.conn)
+                    .expect("Failed to add user-IP pair to db");
+            }
+        }
+    }
 }
 
 fn generate_salt() -> Vec<u8> {
     let mut salt: Vec<u8> = vec![b'0'; 32];
-    super::SYSRAND.fill(salt.as_mut_slice()).expect("System RNG error");
+    SYSRAND.fill(salt.as_mut_slice()).expect("System RNG error");
     salt
 }
 
@@ -118,13 +135,9 @@ fn apply_salt(mut pw: Vec<u8>, mut salt: Vec<u8>) -> Vec<u8> {
     salt
 }
 
-fn hash(pw: &[u8]) -> Vec<u8> {
-    use ring::digest;
-    digest::digest(&digest::SHA256, pw).as_ref().to_vec()
-}
-
 fn check_pw(pw: Vec<u8>, salt: Vec<u8>, auth_pw: &Vec<u8>) -> bool {
     let salted_pw = apply_salt(pw, salt);
     let hashed_salted_pw = hash(salted_pw.as_slice());
+    warn!("{}", hashed_salted_pw.len());
     hashed_salted_pw == *auth_pw
 }

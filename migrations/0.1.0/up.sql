@@ -14,13 +14,30 @@ CREATE TABLE users (
     salt                 BYTEA         NOT NULL, -- 32-byte like the hash
     restart_privilege    BOOLEAN       NOT NULL  DEFAULT false,
     ban_privilege        BOOLEAN       NOT NULL  DEFAULT false,
-    ip                   INET[]        NOT NULL, -- Used to assist in IP banning
     datetime_last_login  TIMESTAMP     NOT NULL  DEFAULT NOW(),
     datetime_created     TIMESTAMP     NOT NULL  DEFAULT NOW()
 );
 CREATE INDEX users_index_name ON users (name);
 -- Prevents duplicate IP addresses being added for a given user
 --CREATE UNIQUE INDEX unique_ip ON users (sort_ip(ip));
+
+CREATE TABLE ips (
+    id  SERIAL  PRIMARY KEY
+  , ip  INET  NOT NULL
+);
+
+CREATE TABLE user_ips (
+    user_id  INT  NOT NULL
+  , FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+  , ip_id  INT  NOT NULL
+  , FOREIGN KEY(ip_id) REFERENCES ips(id) ON DELETE CASCADE
+  , PRIMARY KEY(user_id, ip_id)
+);
+
+CREATE TABLE hands_sizes (
+    id  SERIAL  PRIMARY KEY
+  , hand_sizes  SMALLINT[]  NOT NULL
+);
 
 CREATE TABLE games (
     id                 SERIAL        PRIMARY KEY,
@@ -31,7 +48,7 @@ CREATE TABLE games (
     FOREIGN KEY (owner) REFERENCES users (id),
     variant            variant       NOT NULL,
     hand_sizes_id      INT           NOT NULL,
-    FOREIGN KEY (hand_sizes_id) REFERENCES hand_sizes(id),
+    FOREIGN KEY (hand_sizes_id) REFERENCES hands_sizes(id),
     timed              BOOLEAN       NOT NULL,
     seed               TEXT          NOT NULL, -- like "p2v0s1"
     score              SMALLINT      NOT NULL,
@@ -41,16 +58,15 @@ CREATE TABLE games (
     datetime_started   TIMESTAMP     NOT NULL  DEFAULT '1970-01-01 00:00:00',
     datetime_finished  TIMESTAMP     NOT NULL  DEFAULT NOW()
 );
-CREATE INDEX games_index_players ON games (players);
 CREATE INDEX games_index_variant ON games (variant);
 CREATE INDEX games_index_seed ON games (seed);
 
 CREATE TABLE participants (
-    id  SERIAL  PRIMARY KEY,
-  , game_id  INT  NOT NULL
+    game_id  INT  NOT NULL
   , FOREIGN KEY(game_id) REFERENCES games(id) ON DELETE CASCADE
   , user_id  INT  NOT NULL
   , FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+  , PRIMARY KEY(game_id, user_id)
 );
 
 CREATE TABLE game_time_controls (
@@ -64,10 +80,8 @@ CREATE VIEW timed_games AS
 SELECT * FROM games NATURAL JOIN game_time_controls;
 
 CREATE TABLE banned_ips (
-    id                 SERIAL         PRIMARY KEY,
-    ip                 INET           NOT NULL,
-    user_id            INT            NULL      DEFAULT NULL,
-    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+    id                 INT         PRIMARY KEY,
+    FOREIGN KEY (id) REFERENCES ips(id),
     admin_responsible  INT            NOT NULL,
     FOREIGN KEY(admin_responsible) REFERENCES users(id),
     reason             TEXT           NULL      DEFAULT NULL,
@@ -93,9 +107,4 @@ CREATE TABLE suits (
   , dist_id  INT  NOT NULL
   , FOREIGN KEY(dist_id) REFERENCES dists(id) ON DELETE CASCADE
   , dist  SMALLINT[]  NOT NULL
-);
-
-CREATE TABLE hand_sizes (
-    id  SERIAL  PRIMARY KEY
-  , hand_sizes  SMALLINT[]  NOT NULL
 );

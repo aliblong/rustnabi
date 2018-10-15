@@ -23,6 +23,7 @@ mod util;
 //mod login;
 mod game;
 mod http;
+mod hash;
 
 use ring::rand::SystemRandom;
 
@@ -41,10 +42,10 @@ fn main() {
     }
 
     let db = db::Db::connect();
-    let name = "testname3";
+    let name = "testname0";
     let pw = b"asdf";
     use ipnetwork::IpNetwork;
-    let ip = IpNetwork::V4("192.168.0.2/16".parse().unwrap());
+    let ip = IpNetwork::V4("192.168.0.3/16".parse().unwrap());
     match db.authenticate_user(name, pw.to_vec(), ip) {
         Err(_) => warn!("Invalid credentials for {}", name),
         _ => warn!("User {} logged in successfully", name),
