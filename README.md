@@ -1,4 +1,6 @@
-Probably incomplete; haven't even tested it.
+# rustnabi
+
+`rustnabi` is a webserver for multiplayer Hanabi, a card game of cooperative deduction. As the name implies, it is written in Rust. It is currently a WIP.
 
 # Install guide for Debian-based Linux distros
 
