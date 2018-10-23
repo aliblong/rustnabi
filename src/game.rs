@@ -18,3 +18,8 @@ pub use self::play_area::*;
 pub use self::discard_area::*;
 pub use self::clue::*;
 pub use db::models::Index;
+
+struct Game {
+    players: Vec<Player>,
+    active_player: std::iter::Iterator,
+}

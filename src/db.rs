@@ -138,6 +138,5 @@ fn apply_salt(mut pw: Vec<u8>, mut salt: Vec<u8>) -> Vec<u8> {
 fn check_pw(pw: Vec<u8>, salt: Vec<u8>, auth_pw: &Vec<u8>) -> bool {
     let salted_pw = apply_salt(pw, salt);
     let hashed_salted_pw = hash(salted_pw.as_slice());
-    warn!("{}", hashed_salted_pw.len());
     hashed_salted_pw == *auth_pw
 }
