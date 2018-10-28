@@ -17,6 +17,7 @@ extern crate serde_json;
 extern crate rand; // For deck shuffling RNG
 
 extern crate hyper; // http
+extern crate futures;
 
 mod db;
 mod util;

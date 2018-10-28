@@ -24,6 +24,7 @@ ring = "*"
 lazy_static= "*" # for using a global RNG, as recommended in `ring` docs
 rand = "*"
 hyper = "*"
+futures = "*"
 
 serde = "*"
 serde_yaml = "*"
