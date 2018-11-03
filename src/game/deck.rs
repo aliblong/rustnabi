@@ -1,9 +1,9 @@
 use super::card::Card;
 use super::variant::Variant;
 use db::models::Index;
-use rand::prng::XorShiftRng;
-use rand::{SeedableRng, Rng};
 use hash::hash;
+use rand::prng::XorShiftRng;
+use rand::{Rng, SeedableRng};
 
 #[derive(Debug)]
 pub struct Deck {
@@ -15,7 +15,10 @@ impl Deck {
         let mut cards = Vec::<Card>::with_capacity(50);
         for (suit_index, suit) in variant.suits.iter().enumerate() {
             for (rank_minus_one, multiplicity) in suit.dist.iter().enumerate() {
-                cards.push(Card { suit: suit_index as Index, rank: (rank_minus_one + 1) as Index});
+                cards.push(Card {
+                    suit: suit_index as Index,
+                    rank: (rank_minus_one + 1) as Index,
+                });
             }
         }
         Deck { cards }
@@ -46,9 +49,9 @@ fn seed_from_hash(hash: &[u8]) -> [u8; 16] {
 
 #[cfg(test)]
 mod test {
-    use test::*;
     use super::super::variant::Variant;
     use super::Deck;
+    use test::*;
 
     #[test]
     fn normal_variant() {

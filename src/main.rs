@@ -1,30 +1,41 @@
 #![feature(rust_2018_preview, uniform_paths)]
+#![feature(await_macro, async_await, futures_api)]
+
 extern crate chrono;
 extern crate dotenv;
-extern crate pretty_env_logger;
 extern crate ipnetwork;
-#[macro_use] extern crate diesel_derive_enum;
-#[macro_use] extern crate log;
-#[macro_use] extern crate diesel;
+extern crate pretty_env_logger;
+#[macro_use]
+extern crate diesel_derive_enum;
+#[macro_use]
+extern crate log;
+#[macro_use]
+extern crate diesel;
 extern crate ring; // For crypto
-#[macro_use] extern crate lazy_static;
+#[macro_use]
+extern crate lazy_static;
 
 extern crate serde;
-#[macro_use] extern crate serde_derive;
-extern crate serde_yaml;
+#[macro_use]
+extern crate serde_derive;
 extern crate serde_json;
+extern crate serde_yaml;
 
 extern crate rand; // For deck shuffling RNG
 
-extern crate hyper; // http
 extern crate futures;
+extern crate hyper; // http
+#[macro_use]
+extern crate tokio;
+
+extern crate chess_clock;
 
 mod db;
 mod util;
 //mod login;
 mod game;
-mod http;
 mod hash;
+mod http;
 
 use ring::rand::SystemRandom;
 
@@ -57,8 +68,7 @@ fn main() {
 
 #[cfg(test)]
 mod test {
-    pub static NORMAL_VARIANT: &'static str =
-"---
+    pub static NORMAL_VARIANT: &'static str = "---
 default_dist: &def_dist
   - 3
   - 2
@@ -84,8 +94,7 @@ suits:
       - 4
 ";
 
-    pub static ACID_TRIP_VARIANT: &'static str =
-"---
+    pub static ACID_TRIP_VARIANT: &'static str = "---
 default_dist: &def_dist
   - 3
   - 2
@@ -108,8 +117,7 @@ suits:
     colors: []
 ";
 
-    pub static WILD_CRAZY_VARIANT: &'static str =
-"---
+    pub static WILD_CRAZY_VARIANT: &'static str = "---
 default_dist: &def_dist
   - 3
   - 2

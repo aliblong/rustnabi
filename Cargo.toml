@@ -24,7 +24,10 @@ ring = "*"
 lazy_static= "*" # for using a global RNG, as recommended in `ring` docs
 rand = "*"
 hyper = "*"
-futures = "*"
+futures = "^0.1"
+chess_clock = "*"
+tokio = "*"
+tokio-async-await = "0.1.0"
 
 serde = "*"
 serde_yaml = "*"

@@ -1,6 +1,6 @@
-use ipnetwork::IpNetwork;
 use super::schema::*;
 use chrono::NaiveDateTime as DT;
+use ipnetwork::IpNetwork;
 use serde_json;
 
 pub type Index = usize;
@@ -86,9 +86,8 @@ pub struct Suit {
     pub dist: Vec<Index>,
 }
 
-
 #[derive(Insertable)]
-#[table_name="users"]
+#[table_name = "users"]
 pub struct NewUser<'a> {
     pub name: &'a str,
     pub pw: &'a [u8],
@@ -96,13 +95,13 @@ pub struct NewUser<'a> {
 }
 
 #[derive(Insertable)]
-#[table_name="ips"]
+#[table_name = "ips"]
 pub struct NewIP<'a> {
     pub ip: &'a IpNetwork,
 }
 
 #[derive(Insertable)]
-#[table_name="user_ips"]
+#[table_name = "user_ips"]
 pub struct NewUserIP {
     pub user_id: i32,
     pub ip_id: i32,

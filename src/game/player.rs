@@ -1,4 +1,6 @@
 use super::*;
+use futures::future::{err, ok, FutureResult};
+use tokio::prelude::*;
 
 // Right now this is kind of pointless, but more things may be added to it later, like a WS
 // connection?
@@ -27,10 +29,20 @@ impl Player {
 
     // Evaluates a clue against a hand.
     // Returns the indices of the cards touched by a clue.
-    pub fn clue(self, clue: Clue, hand: &Hand) -> Vec<Index> {
-        hand.cards.iter().enumerate()
+    pub fn clue(&self, clue: Clue, hand: &Hand) -> Vec<Index> {
+        hand.cards
+            .iter()
+            .enumerate()
             .filter(|(_card_index, card)| clue.matches(card))
             .map(|(card_index, _card)| card_index)
             .collect()
+    }
+
+    pub fn recv(&self, msg: String) {
+        unimplemented!();
+    }
+
+    pub fn send(&self) -> FutureResult<&str, ()> {
+        ok("hi")
     }
 }

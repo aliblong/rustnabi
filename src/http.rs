@@ -1,7 +1,7 @@
-use hyper::{Body, Method, Request, Response, Server, StatusCode};
+use futures::future;
 use hyper::rt::{self, Future};
 use hyper::service::service_fn;
-use futures::future;
+use hyper::{Body, Method, Request, Response, Server, StatusCode};
 
 /// A boxed Future (trait object) is used as it is easier to understand
 /// and extend with more types. Advanced users could switch to `Either`.
@@ -16,8 +16,8 @@ fn request_handler(req: Request<Body>) -> BoxFut {
         // Serve some instructions at /
         (&Method::GET, _) => {
             *response.body_mut() = Body::from("Here will be a login page");
-	}
-	// The 404 Not Found route...
+        }
+        // The 404 Not Found route...
         _ => {
             *response.status_mut() = StatusCode::NOT_FOUND;
         }

@@ -9,7 +9,9 @@ pub struct Hand {
 
 impl Hand {
     pub fn new() -> Hand {
-        Hand { cards: Vec::<Card>::with_capacity(4) }
+        Hand {
+            cards: Vec::<Card>::with_capacity(4),
+        }
     }
 
     pub fn draw(&mut self, card: Card) {

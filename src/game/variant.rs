@@ -1,5 +1,5 @@
+use db::models::{Index, Suit};
 use serde_yaml;
-use db::models::{Suit, Index};
 
 pub type ColorSuitMap = Vec<Vec<Index>>;
 
@@ -23,7 +23,9 @@ impl Variant {
 
     // Suits corresponding to a certain color
     pub fn suits(&self, color: Index) -> Vec<Index> {
-        self.suits.iter().enumerate()
+        self.suits
+            .iter()
+            .enumerate()
             .filter(|(_suit_index, suit)| suit.colors.contains(&color))
             .map(|(suit_index, _suit)| suit_index)
             .collect()
@@ -57,7 +59,7 @@ impl Variant {
     // The inverse map { color -> suits } is useful for resolving clues.
     pub fn color_suit_map(&self) -> ColorSuitMap {
         let mut res: Vec<Vec<Index>> = Vec::with_capacity(2);
-        for color in (0 .. self.n_colors()) {
+        for color in (0..self.n_colors()) {
             res.push(self.suits(color));
         }
         res
@@ -66,8 +68,8 @@ impl Variant {
 
 #[cfg(test)]
 mod test {
-    use test::*;
     use super::Variant;
+    use test::*;
 
     #[test]
     fn normal_variant() {
