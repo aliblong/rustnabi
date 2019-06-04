@@ -16,18 +16,21 @@ log = "*"
 postgres = "*"
 diesel = { version = "*", features = ["postgres", "serde_json", "network-address", "chrono"] }
 # Diesel dependencies *must* version-match!
-ipnetwork = "0.12.8" # IP address type that Diesel uses
+ipnetwork = "0.13.1" # IP address type that Diesel uses
 chrono = "0.4.5"
 diesel-derive-enum = { version = "*", features = ["postgres"] }
 serde_json = "*"
 ring = "*"
 lazy_static= "*" # for using a global RNG, as recommended in `ring` docs
 rand = "*"
-hyper = "*"
 futures = "^0.1"
 chess_clock = "*"
 tokio = "*"
 tokio-async-await = "0.1.0"
+actix-web = "1.0.0-rc"
+actix-http = "*"
+actix-server-config = "*"
+actix-service = "*"
 
 serde = "*"
 serde_yaml = "*"

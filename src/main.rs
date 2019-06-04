@@ -21,10 +21,14 @@ extern crate serde_derive;
 extern crate serde_json;
 extern crate serde_yaml;
 
+extern crate actix_web;
+extern crate actix_http;
+extern crate actix_server_config;
+extern crate actix_service;
+
 extern crate rand; // For deck shuffling RNG
 
 extern crate futures;
-extern crate hyper; // http
 #[macro_use]
 extern crate tokio;
 
@@ -39,10 +43,33 @@ mod http;
 
 use ring::rand::SystemRandom;
 
+use actix_web::{
+    web::{
+        resource,
+        get,
+        post,
+        service,
+    },
+    HttpServer,
+    Route,
+    middleware,
+    App,
+};
+
 /// According to `ring` docs, one (threadsafe) instance of SystemRandom should be used for the
 /// entire app
 lazy_static! {
     pub static ref SYSRAND: SystemRandom = SystemRandom::new();
+}
+
+pub fn index() {
+    unimplemented!()
+}
+pub fn login() {
+    unimplemented!()
+}
+pub fn ws_index() {
+    unimplemented!()
 }
 
 fn main() {
@@ -62,8 +89,15 @@ fn main() {
         Err(_) => warn!("Invalid credentials for {}", name),
         _ => warn!("User {} logged in successfully", name),
     }
-    http::init();
-    //ws_server::init();
+    let server = HttpServer::new(|| {
+        App::new()
+            // enable logger
+            .wrap(middleware::Logger::default())
+            .service(resource("/"     ).route( get() .to(index   )))
+            .service(resource("/login").route( post().to(login   )))
+            .service(resource("/ws"   ).route( get() .to(ws_index)))
+    });
+    server.bind("127.0.0.1:8080")?.run()
 }
 
 #[cfg(test)]
