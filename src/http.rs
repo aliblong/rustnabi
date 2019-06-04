@@ -17,9 +17,11 @@ pub fn server<F, I, S, B>() -> HttpServer<F, I, S, B>
     B: MessageBody + 'static,
 {
     let server = HttpServer::new(|| {
-        App::new()
+        let app = App::new()
             // enable logger
-            .wrap(middleware::Logger::default())
+            .wrap(middleware::Logger::default());
+        app = routing::build_routes(app);
+        app
     });
     server
 }

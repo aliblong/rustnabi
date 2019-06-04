@@ -4,18 +4,31 @@ use actix_web::{
         post,
 	resource,
     },
-    HttpServer,
+    App,
     Route,
 };
-use actix_http::{body::MessageBody, Error, Request, Response};
-use actix_server_config::ServerConfig;
-use actix_service::{IntoNewService, NewService};
 
 pub struct RouteSpec<'a> {
     route: &'a str,
     http_method: Route,
-    handler_type: fn() -> Route,
+    handler_type: fn(Route) -> Route,
     handler: fn(),
+}
+
+impl<'a> RouteSpec<'a> {
+    pub fn new(
+        route: &'a str,
+        http_method: Route,
+        handler_type: fn(Route) -> Route,
+        handler: fn(),
+    ) -> Self {
+        Self  {
+            route,
+            http_method,
+            handler_type,
+            handler,
+        }
+    }
 }
 
 pub fn index() {
@@ -28,19 +41,19 @@ pub fn ws_index() {
     unimplemented!()
 }
 
-pub const ROUTE_SPECS: &[&RouteSpec] = &[
-    ("/",      get(),  Route::to, index),
-    ("/login", post(), Route::to, login),
-    ("/ws",    get(),  Route::to, ws_index),
+pub const ROUTE_SPECS: [RouteSpec; 3] = [
+    RouteSpec::new("/",      get(),  Route::to, index),
+    RouteSpec::new("/login", post(), Route::to, login),
+    RouteSpec::new("/ws",    get(),  Route::to, ws_index),
 ];
 
-pub fn build_routes<F, I, S, B>(app: App) -> App
+pub fn build_routes<T, B>(app: App<T, B>) -> App<T, B>
 {
     // server
     //     .service(resource("/").route(get().to(index)))
     //     .service(resource("/login").route(post().to(login)))
     //     .service(resource("/ws").route(get().to(ws_index)))
     for RouteSpec { route, http_method, handler_type, handler } in ROUTE_SPECS {
-        server = server.service(resource(route).route(http_method, handler_type(handler)))
+        app = app.service(resource(route).route(http_method, handler_type(handler)))
     }
 }
