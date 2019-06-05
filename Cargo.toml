@@ -2,6 +2,7 @@
 name = "rustnabi"
 version = "0.1.0"
 authors = ["aaron"]
+edition = "2018"
 #build = "src/build.rs"
 #
 #[build-dependencies]
@@ -27,10 +28,7 @@ futures = "^0.1"
 chess_clock = "*"
 tokio = "*"
 tokio-async-await = "0.1.0"
-actix-web = "1.0.0-rc"
-actix-http = "*"
-actix-server-config = "*"
-actix-service = "*"
+actix-web = "*"
 
 serde = "*"
 serde_yaml = "*"

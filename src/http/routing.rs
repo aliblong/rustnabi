@@ -1,31 +1,43 @@
+// Ok, I'm giving up on this. Every time I try to factor anything out it's exploding complexity
+/*
+#![feature(rust_2018_preview, uniform_paths)]
+#![feature(async_await, futures_api)]
+
+use futures::Future;
+
 use actix_web::{
-    web::{
-        get,
-        post,
-	resource,
-    },
-    App,
-    Route,
+    http::Method,
 };
 
-pub struct RouteSpec<'a> {
+enum Synchronicity<I, E> {
+    Sync(fn()),
+    Async(Box<dyn Future<Item = I, Error = E>>),
+}
+
+pub const SYNC_ROUTES: [RouteSpec; 2] = [
+    RouteSpec::new("/",      Method::GET,  index),
+    RouteSpec::new("/ws",    Method::GET,  ws_index),
+];
+
+pub const ASYNC_ROUTES: [RouteSpec; 1] = [
+    RouteSpec::new("/login", Method::POST, Box::new(login)),
+];
+
+pub struct RouteSpec<'a, I, E> {
     route: &'a str,
-    http_method: Route,
-    handler_type: fn(Route) -> Route,
-    handler: fn(),
+    http_method: Method,
+    handler: Synchronicity<I, E>,
 }
 
 impl<'a> RouteSpec<'a> {
     pub fn new(
         route: &'a str,
-        http_method: Route,
-        handler_type: fn(Route) -> Route,
+        http_method: Method,
         handler: fn(),
     ) -> Self {
         Self  {
             route,
             http_method,
-            handler_type,
             handler,
         }
     }
@@ -34,26 +46,10 @@ impl<'a> RouteSpec<'a> {
 pub fn index() {
     unimplemented!()
 }
-pub fn login() {
+async fn login() {
     unimplemented!()
 }
 pub fn ws_index() {
     unimplemented!()
 }
-
-pub const ROUTE_SPECS: [RouteSpec; 3] = [
-    RouteSpec::new("/",      get(),  Route::to, index),
-    RouteSpec::new("/login", post(), Route::to, login),
-    RouteSpec::new("/ws",    get(),  Route::to, ws_index),
-];
-
-pub fn build_routes<T, B>(app: App<T, B>) -> App<T, B>
-{
-    // server
-    //     .service(resource("/").route(get().to(index)))
-    //     .service(resource("/login").route(post().to(login)))
-    //     .service(resource("/ws").route(get().to(ws_index)))
-    for RouteSpec { route, http_method, handler_type, handler } in ROUTE_SPECS {
-        app = app.service(resource(route).route(http_method, handler_type(handler)))
-    }
-}
+*/

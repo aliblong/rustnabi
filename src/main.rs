@@ -1,60 +1,62 @@
 #![feature(rust_2018_preview, uniform_paths)]
-#![feature(await_macro, async_await, futures_api)]
+#![feature(async_await, futures_api)]
 
-extern crate chrono;
-extern crate dotenv;
-extern crate ipnetwork;
-extern crate pretty_env_logger;
-#[macro_use]
-extern crate diesel_derive_enum;
-#[macro_use]
-extern crate log;
-#[macro_use]
-extern crate diesel;
-extern crate ring; // For crypto
-#[macro_use]
-extern crate lazy_static;
-
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
-extern crate serde_json;
-extern crate serde_yaml;
-
-extern crate actix_web;
-extern crate actix_http;
-extern crate actix_server_config;
-extern crate actix_service;
-
-extern crate rand; // For deck shuffling RNG
-
-extern crate futures;
-#[macro_use]
-extern crate tokio;
-
-extern crate chess_clock;
+//extern crate chrono;
+//extern crate dotenv;
+//extern crate ipnetwork;
+use pretty_env_logger;
+use log::{warn, info};
+//#[macro_use]
+//extern crate diesel_derive_enum;
+//#[macro_use]
+//extern crate log;
+//#[macro_use]
+//extern crate diesel;
+//extern crate ring; // For crypto
+use lazy_static::lazy_static;
+use std::io;
+//
+//extern crate serde;
+//#[macro_use]
+//extern crate serde_derive;
+//extern crate serde_json;
+//extern crate serde_yaml;
+//
+//extern crate actix_web;
+//
+//extern crate rand; // For deck shuffling RNG
+//
+//extern crate futures;
+//#[macro_use]
+//extern crate tokio;
+//
+//extern crate chess_clock;
 
 mod db;
 mod util;
 //mod login;
 mod game;
 mod hash;
-mod http;
+//mod http;
 
 use ring::rand::SystemRandom;
 
 use actix_web::{
     web::{
-        resource,
         get,
         post,
+        resource,
         service,
+        method,
     },
     HttpServer,
     Route,
+    Resource,
     middleware,
     App,
 };
+
+//use http::routing::{RouteSpec, SYNC_ROUTES, ASYNC_ROUTES};
 
 /// According to `ring` docs, one (threadsafe) instance of SystemRandom should be used for the
 /// entire app
@@ -72,7 +74,7 @@ pub fn ws_index() {
     unimplemented!()
 }
 
-fn main() {
+fn main() -> io::Result<()> {
     pretty_env_logger::init();
 
     match dotenv::dotenv() {
@@ -89,15 +91,14 @@ fn main() {
         Err(_) => warn!("Invalid credentials for {}", name),
         _ => warn!("User {} logged in successfully", name),
     }
-    let server = HttpServer::new(|| {
+    HttpServer::new(|| {
         App::new()
             // enable logger
             .wrap(middleware::Logger::default())
             .service(resource("/"     ).route( get() .to(index   )))
             .service(resource("/login").route( post().to(login   )))
             .service(resource("/ws"   ).route( get() .to(ws_index)))
-    });
-    server.bind("127.0.0.1:8080")?.run()
+    }).bind("127.0.0.1:8080")?.run()
 }
 
 #[cfg(test)]
