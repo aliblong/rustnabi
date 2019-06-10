@@ -11,7 +11,7 @@ use actix_web::{
 
 enum Synchronicity<I, E> {
     Sync(fn()),
-    Async(Box<dyn Future<Item = I, Error = E>>),
+    Async(fn() -> impl Future),
 }
 
 pub const SYNC_ROUTES: [RouteSpec; 2] = [

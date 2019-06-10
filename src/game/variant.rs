@@ -1,4 +1,4 @@
-use db::models::{Index, Suit};
+use crate::db::models::{Index, Suit};
 use serde_yaml;
 
 pub type ColorSuitMap = Vec<Vec<Index>>;

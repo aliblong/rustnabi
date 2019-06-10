@@ -19,7 +19,7 @@ pub use self::options::*;
 pub use self::play_area::*;
 pub use self::player::*;
 pub use self::variant::*;
-pub use db::models::Index;
+pub use crate::db::models::Index;
 
 use std::time::Duration;
 use tokio::prelude::*;

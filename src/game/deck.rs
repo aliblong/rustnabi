@@ -1,6 +1,6 @@
 use super::card::Card;
 use super::variant::Variant;
-use db::models::Index;
+use crate::db::models::Index;
 use hash::hash;
 use rand::prng::XorShiftRng;
 use rand::{Rng, SeedableRng};

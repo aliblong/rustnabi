@@ -1,4 +1,4 @@
-use db::models::Index;
+use crate::db::models::Index;
 
 #[derive(Debug)]
 pub struct Card {
