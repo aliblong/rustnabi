@@ -28,8 +28,12 @@ futures = "^0.1"
 chess_clock = "*"
 tokio = "*"
 tokio-async-await = "0.1.0"
-actix-web = "*"
+actix-web = "2"
+actix-rt = "1"
+snafu = "*"
+vec_map = { version = "*", features = ["serde"] }
 
-serde = "*"
+serde = { version = "*", features = ["derive"] }
 serde_yaml = "*"
-serde_derive = "*"
+indoc = "*"
+#serde_derive = "*"
