@@ -87,8 +87,16 @@ pub enum CreateSuitError {
 
 #[derive(Debug, Snafu)]
 pub enum InvalidSuitError {
-    InvalidTouches { err: InvalidTouchesError },
+    InvalidRankTouches { err: InvalidTouchesError },
+    InvalidColorTouches { err: InvalidTouchesError },
     TouchesSizeMismatch { ranks: Vec<Rank>, size: i8 },
+    PlayOrderTouchesMismatch { err: PlayOrderTouchesMismatchError },
+}
+
+#[derive(Debug, Snafu)]
+pub enum PlayOrderTouchesMismatchError {
+    PlayOrderNormalTouchesUpOrDown,
+    PlayOrderUpOrDownTouchesNormal,
 }
 
 #[derive(Debug, Deserialize)]
@@ -118,16 +126,34 @@ impl Suit {
     fn validate(&self) -> Result<(), InvalidSuitError> {
         match self.rank_touches.validate() {
             Ok(_) => (),
-            Err(err) => { return Err(InvalidSuitError::InvalidTouches { err }); },
+            Err(err) => { return Err(InvalidSuitError::InvalidRankTouches { err }); },
         };
         match self.color_touches.validate() {
             Ok(_) => (),
-            Err(err) => { return Err(InvalidSuitError::InvalidTouches { err }); },
+            Err(err) => { return Err(InvalidSuitError::InvalidColorTouches { err }); },
         };
         let n_ranks = self.size.val();
         let n_ranks_rank_touches = self.rank_touches.0.len();
         let n_ranks_color_touches = self.color_touches.0.len();
         let rank_touches_sorted_ranks = self.rank_touches.sorted_ranks();
+        match rank_touches_sorted_ranks.iter().min().unwrap() {
+            Rank::Start => {
+                match self.play_order {
+                    PlayOrder::Normal => { return Err(InvalidSuitError::PlayOrderTouchesMismatch {
+                        err: PlayOrderTouchesMismatchError::PlayOrderNormalTouchesUpOrDown
+                    }) },
+                    PlayOrder::UpOrDown => (),
+                }
+            },
+            Rank::Cardinal(_) => { // guaranteed to be value 1
+                match self.play_order {
+                    PlayOrder::Normal => (),
+                    PlayOrder::UpOrDown => { return Err(InvalidSuitError::PlayOrderTouchesMismatch {
+                        err: PlayOrderTouchesMismatchError::PlayOrderUpOrDownTouchesNormal
+                    }) },
+                }
+            }
+        }
         let color_touches_sorted_ranks = self.color_touches.sorted_ranks();
         if  n_ranks as usize != n_ranks_rank_touches {
             return Err(InvalidSuitError::TouchesSizeMismatch {
@@ -169,7 +195,7 @@ fn suit_deserialize_gapped_color_touches_test() {
     println!("{:?}", suit);
     matches!(
         suit.unwrap_err(),
-        CreateSuitError::Invalid(InvalidSuitError::InvalidTouches{
+        CreateSuitError::Invalid(InvalidSuitError::InvalidColorTouches{
             err: InvalidTouchesError::Gapped{ranks: _}
         })
     );
@@ -185,13 +211,13 @@ fn suit_deserialize_gapped_rank_touches_test() {
             1:
                 - 1
                 - 2
-            2:
+            3:
                 - 0
         color_touches:
             1:
                 - 3
                 - 2
-            3:
+            2:
                 - 0
     "
     );
@@ -199,7 +225,7 @@ fn suit_deserialize_gapped_rank_touches_test() {
     println!("{:?}", suit);
     matches!(
         suit.unwrap_err(),
-        CreateSuitError::Invalid(InvalidSuitError::InvalidTouches{
+        CreateSuitError::Invalid(InvalidSuitError::InvalidRankTouches{
             err: InvalidTouchesError::Gapped{ranks: _}
         })
     );
@@ -293,8 +319,72 @@ fn suit_deserialize_too_few_ranks_start_card_test() {
     println!("{:?}", suit);
     matches!(
         suit.unwrap_err(),
-        CreateSuitError::Invalid(InvalidSuitError::InvalidTouches {
+        CreateSuitError::Invalid(InvalidSuitError::InvalidRankTouches {
             err: InvalidTouchesError::TooFewRanksForStartCard
+        })
+    );
+}
+
+#[test]
+fn suit_deserialize_play_order_normal_touches_up_or_down_test() {
+    let yaml_str = indoc!(
+        "---
+        play_order: Normal
+        size: 2
+        rank_touches:
+            0:
+                - 1
+            1:
+                - 1
+                - 2
+            2:
+                - 1
+        color_touches:
+            0:
+                - 1
+            1:
+                - 1
+                - 2
+            2:
+                - 1
+    "
+    );
+    let suit = Suit::new(yaml_str);
+    println!("{:?}", suit);
+    matches!(
+        suit.unwrap_err(),
+        CreateSuitError::Invalid(InvalidSuitError::PlayOrderTouchesMismatch {
+            err: PlayOrderTouchesMismatchError::PlayOrderNormalTouchesUpOrDown
+        })
+    );
+}
+
+#[test]
+fn suit_deserialize_play_order_up_or_down_touches_normal_test() {
+    let yaml_str = indoc!(
+        "---
+        play_order: UpOrDown
+        size: 2
+        rank_touches:
+            1:
+                - 1
+                - 2
+            2:
+                - 1
+        color_touches:
+            1:
+                - 1
+                - 2
+            2:
+                - 1
+    "
+    );
+    let suit = Suit::new(yaml_str);
+    println!("{:?}", suit);
+    matches!(
+        suit.unwrap_err(),
+        CreateSuitError::Invalid(InvalidSuitError::PlayOrderTouchesMismatch {
+            err: PlayOrderTouchesMismatchError::PlayOrderUpOrDownTouchesNormal
         })
     );
 }
