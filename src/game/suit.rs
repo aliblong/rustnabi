@@ -19,48 +19,67 @@ enum PlayOrder {
 // and suits will have either 1, 2, or all (rainbow) colors.
 type TouchesMap<ClueKind> = HashMap<Rank, HashSet<ClueKind>>;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, PartialEq)]
 struct Touches<ClueKind: Cluelike + std::fmt::Debug + Eq + std::hash::Hash>(TouchesMap<ClueKind>);
 
-//impl<ClueKind: Cluelike> Touches<ClueKind> {
-//    fn new(yaml_map: HashMap<i8, Vec<i8>>)
-//        -> Result<Touches<ClueKind>, GameSpecError>
-//    {
-//        // Vec<Result> is supposedly converted to Result<Vec>
-//        let map: TouchesMap<ClueKind> = yaml_map.into_iter()
-//            .map(|(rank, touches)| (
-//                    ValidClueIdx::new(rank)?.val(),
-//                    touches.map(
-//                        |touch|
-//                        ClueKind::from_valid_clue_idx(ValidClueIdx::new(touch)?)
-//                    ).collect()?
-//                )
-//            ).collect()?;
-//        let ranks = map.ranks().collect();
-//        let max = ranks.iter().rev().next().unwrap_or(-1);
-//        if max == -1 {
-//            return Err(InvalidTouches{kind: InvalidTouchesKind::Empty});
-//        }
-//        let min = ranks.iter().next().unwrap();
-//        let size = ranks.len();
-//        let play_order = if min == 0 {PlayOrder::UpOrDown} else {PlayOrder::Normal};
-//        let well_formed =
-//            (play_order == PlayOrder::UpOrDown && size == max + 1) ||
-//            (play_order == PlayOrder::Normal && size == max);
-//        match well_formed {
-//            true => Ok((Touches{map}, play_order)),
-//            false => Err(InvalidTouches{kind: InvalidTouchesKind::Gapped{ranks}}),
-//        }
-//    }
-//    fn does_clue_touch_card(&self, clue: ClueKind, card_rank: Rank) -> bool {
-//        let idx = card_rank.to_idx();
-//        let err_msg =
-//            "Request for touches from invalid rank clue index. \
-//            Game spec should already have been validated";
-//        self.map.get(idx).expect(err_msg).contains(clue.to_idx())
-//    }
-//}
+impl<ClueKind: Cluelike + std::fmt::Debug + Eq + std::hash::Hash> Touches<ClueKind> {
+    fn validate(&self) -> Result<(), InvalidTouchesError> {
+        // not exactly optimal to not grab count, min, and max in one loop, but
+        // perf cost seems negligible
+        let rank_touches_ranks_count = self.0.keys().count();
+        if rank_touches_ranks_count == 0 {
+            return Err(InvalidTouchesError::Empty)
+        }
+        // unwrapping these is only safe with the previous check for nonzero size
+        let rank_touches_ranks_min = self.0.keys().min().unwrap();
+        let max_rank_val = self.0.keys().max().unwrap().to_idx().val();
+        match rank_touches_ranks_min {
+            Rank::Start => {
+                if rank_touches_ranks_count < 3 {
+                    Err(InvalidTouchesError::TooFewRanksForStartCard)
+                }
+                else if max_rank_val as usize != rank_touches_ranks_count - 1 {
+                    Err(InvalidTouchesError::Gapped{
+                        ranks: self.sorted_ranks()
+                    })
+                }
+                else {
+                    Ok(())
+                }
+            },
+            Rank::Cardinal(_) => {
+                if max_rank_val as usize != rank_touches_ranks_count {
+                    Err(InvalidTouchesError::Gapped{
+                        ranks: self.sorted_ranks()
+                    })
+                }
+                else {
+                    Ok(())
+                }
+            }
+        }
+    }
+    fn sorted_ranks(&self) -> Vec<Rank> {
+        let mut ranks = self.0.keys()
+            .map(|rank| rank.clone())
+            .collect::<Vec<Rank>>();
+        ranks.sort();
+        ranks
+    }
+}
 
+#[derive(Debug, Snafu)]
+pub enum InvalidTouchesError {
+    #[snafu(display("Empty touches spec"))]
+    Empty,
+    #[snafu(display("Gapped touches spec: {:?}", ranks))]
+    Gapped { ranks: Vec<Rank> },
+    #[snafu(display("A suit with a start card and fewer than 2 ranks is ill-defined"))]
+    TooFewRanksForStartCard,
+}
+
+
+#[derive(Debug)]
 pub enum CreateSuitError {
     Parse(serde_yaml::Error),
     Invalid(InvalidSuitError),
@@ -68,15 +87,8 @@ pub enum CreateSuitError {
 
 #[derive(Debug, Snafu)]
 pub enum InvalidSuitError {
-    #[snafu(display("Empty touches spec"))]
-    EmptyRankTouches,
-    EmptyColorTouches,
-    #[snafu(display("Gapped rank touches spec: {:?}", ranks))]
-    Gapped { ranks: Vec<Rank> },
-    #[snafu(display("A suit with a start card and fewer than 2 ranks is ill-defined"))]
-    TooFewRanksForStartCard,
-    RankTouchesSizeMismatch { touches: Touches<Rank>, size: i8 },
-    ColorTouchesSizeMismatch { touches: Touches<Color>, size: i8 },
+    InvalidTouches { err: InvalidTouchesError },
+    TouchesSizeMismatch { ranks: Vec<Rank>, size: i8 },
 }
 
 #[derive(Debug, Deserialize)]
@@ -98,101 +110,191 @@ impl Suit {
             Ok(suit) => suit,
             Err(err) => return Err(CreateSuitError::Parse(err)),
         };
-        suit.validate()
-    }
-    fn validate(self) -> Result<Self, CreateSuitError> {
-        // not exactly optimal to not grab count, min, and max in one loop, but
-        // perf cost seems negligible
-        let rank_touches_ranks_count = self.rank_touches.0.keys().count();
-        if rank_touches_ranks_count == 0 {
-            return Err(CreateSuitError::Invalid(InvalidSuitError::EmptyRankTouches))
-        }
-        // unwrapping these is only safe with the previous check for nonzero size
-        let rank_touches_ranks_min = self.rank_touches.0.keys().min().unwrap();
-        let max_rank_val = self.rank_touches.0.keys().max().unwrap().to_idx().val();
-        match rank_touches_ranks_min {
-            Rank::Start => {
-                if rank_touches_ranks_count < 3 {
-                    Err(CreateSuitError::Invalid(InvalidSuitError::TooFewRanksForStartCard))
-                }
-                else if max_rank_val as usize != rank_touches_ranks_count - 1 {
-                    Err(CreateSuitError::Invalid(InvalidSuitError::Gapped{
-                        ranks: self.sorted_ranks_from_rank_touches()
-                    }))
-                }
-                else {
-                    Ok(self)
-                }
-            },
-            Rank::Cardinal(_) => {
-                if max_rank_val as usize != rank_touches_ranks_count {
-                    Err(CreateSuitError::Invalid(InvalidSuitError::Gapped{
-                        ranks: self.sorted_ranks_from_rank_touches()
-                    }))
-                }
-                else {
-                    Ok(self)
-                }
-            }
+        match suit.validate() {
+            Ok(_) => Ok(suit),
+            Err(err) => Err(CreateSuitError::Invalid(err)),
         }
     }
-    fn sorted_ranks_from_rank_touches(self) -> Vec<Rank> {
-        let mut ranks = self.rank_touches.0.keys()
-            .map(|rank| rank.clone())
-            .collect::<Vec<Rank>>();
-        ranks.sort();
-        ranks
+    fn validate(&self) -> Result<(), InvalidSuitError> {
+        match self.rank_touches.validate() {
+            Ok(_) => (),
+            Err(err) => { return Err(InvalidSuitError::InvalidTouches { err }); },
+        };
+        match self.color_touches.validate() {
+            Ok(_) => (),
+            Err(err) => { return Err(InvalidSuitError::InvalidTouches { err }); },
+        };
+        let n_ranks = self.size.val();
+        let n_ranks_rank_touches = self.rank_touches.0.len();
+        let n_ranks_color_touches = self.color_touches.0.len();
+        let rank_touches_sorted_ranks = self.rank_touches.sorted_ranks();
+        let color_touches_sorted_ranks = self.color_touches.sorted_ranks();
+        if  n_ranks as usize != n_ranks_rank_touches {
+            return Err(InvalidSuitError::TouchesSizeMismatch {
+                ranks: rank_touches_sorted_ranks,
+                size: n_ranks,
+            });
+        }
+        if  n_ranks as usize != n_ranks_color_touches {
+            return Err(InvalidSuitError::TouchesSizeMismatch {
+                ranks: color_touches_sorted_ranks,
+                size: n_ranks,
+            });
+        }
+        return Ok(());
     }
 }
 
 #[test]
-fn rank_touches_deserialize_test() {
-    let yaml_str: &'static str = indoc!(
-        "---
-        0:
-            - 1
-            - 2
-        1:
-            - 1
-            - 2
-        2:
-            - 0
-    "
-    );
-    let touches: TouchesMap<Rank> = serde_yaml::from_str(yaml_str).expect("Bad yaml");
-    println!("{:?}", touches);
-    println!("{}", yaml_str);
-    //let mut vm = vec_map::VecMap::new();
-    //vm.insert(1, "test");
-    //println!("{}", serde_yaml::to_string(&vm).unwrap());
-}
-
-#[test]
-fn suit_deserialize_test() {
+fn suit_deserialize_gapped_color_touches_test() {
     let yaml_str = indoc!(
         "---
-        play_order: UpOrDown
+        play_order: Normal
         size: 2
         rank_touches:
-            0:
-                - 1
-                - 2
             1:
                 - 1
                 - 2
             2:
                 - 0
         color_touches:
-            0:
-                - 1
-                - 5
             1:
                 - 3
-                - -2
+                - 2
+            3:
+                - 0
+    "
+    );
+    let suit = Suit::new(yaml_str);
+    println!("{:?}", suit);
+    matches!(
+        suit.unwrap_err(),
+        CreateSuitError::Invalid(InvalidSuitError::InvalidTouches{
+            err: InvalidTouchesError::Gapped{ranks: _}
+        })
+    );
+}
+
+#[test]
+fn suit_deserialize_gapped_rank_touches_test() {
+    let yaml_str = indoc!(
+        "---
+        play_order: Normal
+        size: 2
+        rank_touches:
+            1:
+                - 1
+                - 2
+            2:
+                - 0
+        color_touches:
+            1:
+                - 3
+                - 2
+            3:
+                - 0
+    "
+    );
+    let suit = Suit::new(yaml_str);
+    println!("{:?}", suit);
+    matches!(
+        suit.unwrap_err(),
+        CreateSuitError::Invalid(InvalidSuitError::InvalidTouches{
+            err: InvalidTouchesError::Gapped{ranks: _}
+        })
+    );
+}
+
+#[test]
+fn suit_deserialize_rank_touches_size_mismatch_test() {
+    let yaml_str = indoc!(
+        "---
+        play_order: Normal
+        size: 3
+        rank_touches:
+            1:
+                - 1
+                - 2
+            2:
+                - 0
+        color_touches:
+            1:
+                - 3
+                - 2
+            2:
+                - 0
+            3:
+                - 0
+    "
+    );
+    let suit = Suit::new(yaml_str);
+    println!("{:?}", suit);
+    matches!(
+        suit.unwrap_err(),
+        CreateSuitError::Invalid(InvalidSuitError::TouchesSizeMismatch { ranks: _, size: _ })
+    );
+}
+
+#[test]
+fn suit_deserialize_color_touches_size_mismatch_test() {
+    let yaml_str = indoc!(
+        "---
+        play_order: UpOrDown
+        size: 3
+        rank_touches:
+            0:
+                - 1
+            1:
+                - 1
+                - 2
+            2:
+                - 0
+            3:
+                - 0
+        color_touches:
+            0:
+                - 1
+            1:
+                - 3
+                - 2
             2:
                 - 0
     "
     );
-    let suit: serde_yaml::Result<Suit> = serde_yaml::from_str(yaml_str);
+    let suit = Suit::new(yaml_str);
     println!("{:?}", suit);
+    matches!(
+        suit.unwrap_err(),
+        CreateSuitError::Invalid(InvalidSuitError::TouchesSizeMismatch { ranks: _, size: _ })
+    );
+}
+
+#[test]
+fn suit_deserialize_too_few_ranks_start_card_test() {
+    let yaml_str = indoc!(
+        "---
+        play_order: UpOrDown
+        size: 1
+        rank_touches:
+            0:
+                - 1
+            1:
+                - 1
+                - 2
+        color_touches:
+            0:
+                - 1
+            1:
+                - 1
+                - 2
+    "
+    );
+    let suit = Suit::new(yaml_str);
+    println!("{:?}", suit);
+    matches!(
+        suit.unwrap_err(),
+        CreateSuitError::Invalid(InvalidSuitError::InvalidTouches {
+            err: InvalidTouchesError::TooFewRanksForStartCard
+        })
+    );
 }
