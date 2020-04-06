@@ -1,14 +1,14 @@
 use super::*;
-use futures::future::{err, ok, FutureResult};
-use tokio::prelude::*;
+//use futures::future::{err, ok, FutureResult};
+//use tokio::prelude::*;
 
 // Right now this is kind of pointless, but more things may be added to it later, like a WS
 // connection?
-pub struct Player {
+pub struct PlaySeat {
     hand: Hand,
 }
 
-impl Player {
+impl PlaySeat {
     fn draw(&mut self, deck: &mut Deck) {
         if let Some(card) = deck.draw() {
             self.hand.draw(card);
@@ -38,11 +38,11 @@ impl Player {
             .collect()
     }
 
-    pub fn recv(&self, msg: String) {
-        unimplemented!();
-    }
-
-    pub fn send(&self) -> FutureResult<&str, ()> {
-        ok("hi")
-    }
+//    pub fn recv(&self, msg: String) {
+//        unimplemented!();
+//    }
+//
+//    pub async fn send(&self) -> Result<String, ()> {
+//        Ok("hi")
+//    }
 }

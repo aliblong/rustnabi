@@ -5,7 +5,6 @@ use serde::Deserialize;
 use std::collections::{HashMap, HashSet};
 use snafu::Snafu;
 // vec_map doesn't have a nice out-of-the-box serde impl
-//use vec_map;
 
 #[derive(Debug, Deserialize)]
 enum PlayOrder {

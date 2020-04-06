@@ -1,4 +1,9 @@
 #![feature(matches_macro)]
+use actix::{Actor, StreamHandler};
+use actix_web::{web, App, Error, HttpRequest, HttpResponse, HttpServer};
+use actix_web_actors::ws;
+use actix_files as fs;
+use serde::Deserialize;
 ////extern crate chrono;
 ////extern crate dotenv;
 ////extern crate ipnetwork;
@@ -22,7 +27,7 @@
 //mod db;
 //mod util;
 //mod login;
-mod game;
+//mod game;
 //mod hash;
 //mod http;
 //use vec_map;
@@ -46,9 +51,66 @@ mod game;
 //    App,
 //};
 //
-fn main() {
-    println!("Hello, world!");
+/// Define http actor
+struct MyWs;
+
+impl Actor for MyWs {
+    type Context = ws::WebsocketContext<Self>;
 }
+
+/// Handler for ws::Message message
+impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for MyWs {
+    fn handle(
+        &mut self,
+        msg: Result<ws::Message, ws::ProtocolError>,
+        ctx: &mut Self::Context,
+    ) {
+        match msg {
+            Ok(ws::Message::Ping(msg)) => ctx.pong(&msg),
+            Ok(ws::Message::Text(text)) => ctx.text(text),
+            Ok(ws::Message::Binary(bin)) => ctx.binary(bin),
+            _ => (),
+        }
+    }
+}
+
+async fn index(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse, Error> {
+    let resp = ws::start(MyWs {}, &req, stream);
+    println!("{:?}", resp);
+    println!("hi");
+    resp
+}
+
+#[derive(Deserialize)]
+struct LoginFormData {
+    email_address: String,
+}
+
+async fn handle_login(form: web::Form<LoginFormData>) -> Result<HttpResponse, Error> {
+    println!("{}", form.email_address);
+    Ok(HttpResponse::Ok().finish())
+}
+
+#[actix_rt::main]
+async fn main() -> std::io::Result<()> {
+    HttpServer::new(move || {
+        App::new()
+            .service(web::resource("/").route(web::get().to(|| {
+                HttpResponse::Found()
+                    .header("LOCATION", "/static/index.html")
+                    .finish()
+            })))
+            .service(fs::Files::new("/static/", "static/"))
+            .service(web::resource("/login").route(web::post().to(handle_login)))
+    })
+        .bind("127.0.0.1:8088")?
+        .run()
+        .await
+}
+
+//fn main() {
+//    println!("Hello, world!");
+//}
 ////use http::routing::{RouteSpec, SYNC_ROUTES, ASYNC_ROUTES};
 //
 ///// According to `ring` docs, one (threadsafe) instance of SystemRandom should be used for the

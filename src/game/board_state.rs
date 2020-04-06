@@ -1,18 +1,18 @@
 use super::*;
 
-static MAX_CLUES: i8 = 8;
-
-pub struct Board {
+pub struct BoardState {
     pub play_area: PlayArea,
     pub discard_area: DiscardArea,
+    pub hands: Vec<Hand>,
     pub deck: Deck,
     pub clues: i8,
     pub strikes: i8,
+    pub current_player: i8,
 }
 
-impl Board {
-    pub fn new(variant: &Variant) -> Board {
-        Board {
+impl BoardState {
+    pub fn new(variant: &Variant) -> BoardState {
+        BoardState {
             play_area: PlayArea::new(variant.suits.len()),
             discard_area: DiscardArea {},
             deck: Deck::new(variant),

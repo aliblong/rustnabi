@@ -28,8 +28,11 @@ futures = "^0.1"
 chess_clock = "*"
 tokio = "*"
 tokio-async-await = "0.1.0"
+actix-web-actors = "*"
 actix-web = "2"
+actix-files = "*"
 actix-rt = "1"
+actix = "*"
 snafu = "*"
 vec_map = { version = "*", features = ["serde"] }
 

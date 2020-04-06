@@ -1,7 +1,7 @@
-use crate::db::models::Index;
+use super::{Suit, Rank};
 
 #[derive(Debug)]
 pub struct Card {
-    pub suit: Index,
-    pub rank: Index,
+    pub suit: Suit,
+    pub rank: Rank,
 }
