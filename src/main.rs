@@ -1,6 +1,9 @@
 #![feature(matches_macro)]
 use actix::{Actor, StreamHandler};
-use actix_web::{web, App, Error, HttpRequest, HttpResponse, HttpServer};
+use actix_identity::Identity;
+use itsdangerous::{SignerBuilder, IntoTimestampSigner, TimestampSigner};
+use actix_identity::{CookieIdentityPolicy, IdentityService};
+use actix_web::{middleware, web, App, Error, HttpRequest, HttpResponse, HttpServer};
 use actix_web_actors::ws;
 use actix_files as fs;
 use serde::Deserialize;
@@ -86,22 +89,47 @@ struct LoginFormData {
     email_address: String,
 }
 
-async fn handle_login(form: web::Form<LoginFormData>) -> Result<HttpResponse, Error> {
-    println!("{}", form.email_address);
+async fn handle_request_email(
+    form: web::Form<LoginFormData>,
+    data: web::Data<AppState>,
+) -> Result<HttpResponse, Error> {
+    println!("{}", &form.email_address);
+    let key = data.get_ref().crypto_signer_key.clone();
+    let signer = itsdangerous::default_builder(key).build().into_timestamp_signer();
+    println!("{}", signer.sign(&form.email_address));
+    let unsigned_value = signer.unsign("asdf@aol.com.EXAYCg.adTJhPLLjrRTugY9Z70wlY5tJNE").unwrap();
+    println!("{}", unsigned_value.value());
+    println!("{:#?}", unsigned_value.timestamp());
     Ok(HttpResponse::Ok().finish())
+}
+
+struct AppState {
+    // apparently the signer itself doesn't implement Clone, so have to build it each time an
+    // email request is handled
+    crypto_signer_key: String,
 }
 
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
+    let crypto_signer_key = "xddddddddd";
+    // let app_data = itsdangerous::default_builder(crypto_signer_key).build();
     HttpServer::new(move || {
         App::new()
+            .data(AppState{crypto_signer_key: crypto_signer_key.to_owned()})
+            .wrap(IdentityService::new(
+                CookieIdentityPolicy::new(&[0; 32])
+                    .name("auth-example")
+                    .secure(false),
+            ))
+            // enable logger - always register actix-web Logger middleware last
+            .wrap(middleware::Logger::default())
             .service(web::resource("/").route(web::get().to(|| {
                 HttpResponse::Found()
                     .header("LOCATION", "/static/index.html")
                     .finish()
             })))
             .service(fs::Files::new("/static/", "static/"))
-            .service(web::resource("/login").route(web::post().to(handle_login)))
+            .service(web::resource("/request_email").route(web::post().to(handle_request_email)))
     })
         .bind("127.0.0.1:8088")?
         .run()

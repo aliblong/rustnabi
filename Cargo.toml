@@ -32,7 +32,9 @@ actix-web-actors = "*"
 actix-web = "2"
 actix-files = "*"
 actix-rt = "1"
+actix-identity = "*"
 actix = "*"
+itsdangerous = "*"
 snafu = "*"
 vec_map = { version = "*", features = ["serde"] }
 
