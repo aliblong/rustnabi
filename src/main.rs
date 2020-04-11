@@ -7,6 +7,7 @@ use actix_web::{middleware, web, App, Error, HttpRequest, HttpResponse, HttpServ
 use actix_web_actors::ws;
 use actix_files as fs;
 use serde::Deserialize;
+use mailgun_v3;
 ////extern crate chrono;
 ////extern crate dotenv;
 ////extern crate ipnetwork;
@@ -89,6 +90,31 @@ struct LoginFormData {
     email_address: String,
 }
 
+async fn send_login_email(
+    email_address: &str,
+    timestamp_signed_email_address: &str,
+    credentials: &mailgun_v3::Credentials
+) {
+    mailgun_v3::email::send_email(
+        credentials,
+        &mailgun_v3::EmailAddress::name_address(
+            "playhanabi admin",
+            "admin@playhanabi.com",
+        ),
+        mailgun_v3::email::Message {
+            to: vec![mailgun_v3::EmailAddress::address(email_address)],
+            subject: "Login link to playhanabi.com".to_owned(),
+            cc: vec![],
+            bcc: vec![],
+            options: vec![],
+            body: mailgun_v3::email::MessageBody::Text(format!(
+                "Follow this link to sign into playhanabi.com:\r\n\
+                https://playhanabi.com/login/{}", timestamp_signed_email_address
+            )),
+        }
+    );
+}
+
 async fn handle_request_email(
     form: web::Form<LoginFormData>,
     data: web::Data<AppState>,
@@ -96,10 +122,11 @@ async fn handle_request_email(
     println!("{}", &form.email_address);
     let key = data.get_ref().crypto_signer_key.clone();
     let signer = itsdangerous::default_builder(key).build().into_timestamp_signer();
-    println!("{}", signer.sign(&form.email_address));
-    let unsigned_value = signer.unsign("asdf@aol.com.EXAYCg.adTJhPLLjrRTugY9Z70wlY5tJNE").unwrap();
-    println!("{}", unsigned_value.value());
-    println!("{:#?}", unsigned_value.timestamp());
+    send_login_email(
+        &form.email_address,
+        &*signer.sign(&form.email_address),
+        &data.mailgun_credentials
+    ).await;
     Ok(HttpResponse::Ok().finish())
 }
 
@@ -107,6 +134,7 @@ struct AppState {
     // apparently the signer itself doesn't implement Clone, so have to build it each time an
     // email request is handled
     crypto_signer_key: String,
+    mailgun_credentials: mailgun_v3::Credentials,
 }
 
 #[actix_rt::main]
@@ -115,7 +143,13 @@ async fn main() -> std::io::Result<()> {
     // let app_data = itsdangerous::default_builder(crypto_signer_key).build();
     HttpServer::new(move || {
         App::new()
-            .data(AppState{crypto_signer_key: crypto_signer_key.to_owned()})
+            .data(AppState{
+                crypto_signer_key: crypto_signer_key.to_owned(),
+                mailgun_credentials: mailgun_v3::Credentials::new(
+                    "fake",
+                    "news",
+                ),
+            })
             .wrap(IdentityService::new(
                 CookieIdentityPolicy::new(&[0; 32])
                     .name("auth-example")

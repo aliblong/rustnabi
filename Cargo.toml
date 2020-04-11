@@ -37,6 +37,7 @@ actix = "*"
 itsdangerous = "*"
 snafu = "*"
 vec_map = { version = "*", features = ["serde"] }
+mailgun_v3 = "*"
 
 serde = { version = "*", features = ["derive"] }
 serde_yaml = "*"
