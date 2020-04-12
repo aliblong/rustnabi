@@ -7,12 +7,13 @@ use actix_web::{middleware, web, App, Error, HttpRequest, HttpResponse, HttpServ
 use actix_web_actors::ws;
 use actix_files as fs;
 use serde::Deserialize;
-use mailgun_v3;
+use mailgun_rs;
 ////extern crate chrono;
-////extern crate dotenv;
+use dotenv;
+use std::env;
 ////extern crate ipnetwork;
-//use pretty_env_logger;
-//use log::{warn, info};
+use pretty_env_logger;
+use log::{warn, info};
 //#[macro_use]
 //extern crate diesel_derive_enum;
 //#[macro_use]
@@ -93,26 +94,36 @@ struct LoginFormData {
 async fn send_login_email(
     email_address: &str,
     timestamp_signed_email_address: &str,
-    credentials: &mailgun_v3::Credentials
+    credentials: &MailgunCredentials
 ) {
-    mailgun_v3::email::send_email(
-        credentials,
-        &mailgun_v3::EmailAddress::name_address(
-            "playhanabi admin",
-            "admin@playhanabi.com",
-        ),
-        mailgun_v3::email::Message {
-            to: vec![mailgun_v3::EmailAddress::address(email_address)],
+    let resp = mailgun_rs::Mailgun {
+        api_key: credentials.api_key.clone(),
+        domain: credentials.domain.clone(),
+        message: mailgun_rs::Message {
+            to: vec![mailgun_rs::EmailAddress::address(email_address)],
             subject: "Login link to playhanabi.com".to_owned(),
             cc: vec![],
             bcc: vec![],
-            options: vec![],
-            body: mailgun_v3::email::MessageBody::Text(format!(
+            text: format!(
                 "Follow this link to sign into playhanabi.com:\r\n\
                 https://playhanabi.com/login/{}", timestamp_signed_email_address
-            )),
+            ),
+            html: "".to_owned(),
         }
+    }.send(
+        &mailgun_rs::EmailAddress::name_address(
+            "playhanabi admin",
+            "admin@playhanabi.com",
+        )
     );
+    match resp {
+        Ok(response) => {
+            println!("success! {}; {}", response.message, response.id)
+        }
+        Err(err) => {
+            println!("{:?}", err)
+        }
+    }
 }
 
 async fn handle_request_email(
@@ -134,21 +145,33 @@ struct AppState {
     // apparently the signer itself doesn't implement Clone, so have to build it each time an
     // email request is handled
     crypto_signer_key: String,
-    mailgun_credentials: mailgun_v3::Credentials,
+    mailgun_credentials: MailgunCredentials,
+}
+
+struct MailgunCredentials {
+    api_key: String,
+    domain: String,
 }
 
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
+    pretty_env_logger::init();
+    match dotenv::dotenv() {
+        Err(e) => warn!("Error reading .env file: {}", e),
+        _ => info!("Parsed .env file successfully"),
+    }
     let crypto_signer_key = "xddddddddd";
+    let api_key = env::var("MAILGUN_API_KEY").expect("MAILGUN_API_KEY must be set (check `.env`)");
+    let domain = env::var("MAILGUN_DOMAIN").expect("MAILGUN_DOMAIN must be set (check `.env`)");
     // let app_data = itsdangerous::default_builder(crypto_signer_key).build();
     HttpServer::new(move || {
         App::new()
             .data(AppState{
                 crypto_signer_key: crypto_signer_key.to_owned(),
-                mailgun_credentials: mailgun_v3::Credentials::new(
-                    "fake",
-                    "news",
-                ),
+                mailgun_credentials: MailgunCredentials {
+                    api_key: api_key.clone(),
+                    domain: domain.clone(),
+                },
             })
             .wrap(IdentityService::new(
                 CookieIdentityPolicy::new(&[0; 32])
