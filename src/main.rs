@@ -14,6 +14,7 @@ use std::env;
 ////extern crate ipnetwork;
 use pretty_env_logger;
 use log::{warn, info};
+use core::time::Duration;
 //#[macro_use]
 //extern crate diesel_derive_enum;
 //#[macro_use]
@@ -57,8 +58,9 @@ use log::{warn, info};
 //};
 //
 /// Define http actor
-struct MyWs;
+//struct MyWs;
 
+/*
 impl Actor for MyWs {
     type Context = ws::WebsocketContext<Self>;
 }
@@ -85,6 +87,7 @@ async fn index(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse, E
     println!("hi");
     resp
 }
+*/
 
 #[derive(Deserialize)]
 struct LoginFormData {
@@ -135,7 +138,7 @@ async fn handle_request_email(
     let signer = itsdangerous::default_builder(key).build().into_timestamp_signer();
     send_login_email(
         &form.email_address,
-        &*signer.sign(&form.email_address),
+        &base64::encode_config(&signer.sign(&form.email_address), base64::URL_SAFE),
         &data.mailgun_credentials
     ).await;
     Ok(HttpResponse::Ok().finish())
@@ -146,6 +149,7 @@ struct AppState {
     // email request is handled
     crypto_signer_key: String,
     mailgun_credentials: MailgunCredentials,
+    login_link_timeout: Duration,
 }
 
 struct MailgunCredentials {
@@ -159,21 +163,49 @@ fn get_expected_env_var(name: &str) -> String {
 
 async fn handle_login(
     app_state: web::Data<AppState>,
-    crypto_signed_email_address: web::Path<String>,
+    b64_encoded_crypto_signed_email_address: web::Path<String>,
 ) -> Result<HttpResponse, Error> {
-    let key = app_state.get_ref().crypto_signer_key.clone();
-    let signer = itsdangerous::default_builder(key).build().into_timestamp_signer();
-    // Deref to get the contenst of web::Path if it has a single element
-    // Otherwise, for e.g. web::Path<(String, String)>, use path.0
-    match signer.unsign(&**crypto_signed_email_address) {
-        Ok(payload) => {
-            println!("successful login: {}", payload.value());
-            //println!("{:?}", check_signed_val.timestamp());
+    match base64::decode_config(&**b64_encoded_crypto_signed_email_address, base64::URL_SAFE) {
+        Err(_err) => {
+            println!("bad token: {}", *b64_encoded_crypto_signed_email_address);
         }
-        Err(err) => {
-            println!("unsuccessful login: {}", *crypto_signed_email_address);
+        Ok(crypto_signed_email_address_bytes) => {
+            // output of decode should always be valid utf-8
+            let crypto_signed_email_address = std::str::from_utf8(
+                &crypto_signed_email_address_bytes).unwrap();
+            let key = app_state.get_ref().crypto_signer_key.clone();
+            let signer = itsdangerous::default_builder(key).build().into_timestamp_signer();
+            // Deref to get the contenst of web::Path if it has a single element
+            // Otherwise, for e.g. web::Path<(String, String)>, use path.0
+            match signer.unsign(crypto_signed_email_address) {
+                Err(_err) => {
+                    println!("unsuccessful login: {}", crypto_signed_email_address);
+                }
+                Ok(payload) => {
+                    // 15-minute link timeout
+                    let timeout = app_state.get_ref().login_link_timeout;
+                    match payload.value_if_not_expired(timeout) {
+                        Ok(email_address) => {
+                            println!("successful login: {}", email_address);
+                        }
+                        Err(err) => {
+                            match err {
+                                // suboptimal error model; it's always the TimestampExpired variant
+                                itsdangerous::BadTimedSignature::TimestampExpired {
+                                    timestamp: _,
+                                    max_age: _,
+                                    value: email_address,
+                                } => {
+                                    println!("login link expired: {}", email_address);
+                                }
+                                _ => unreachable!()
+                            }
+                        }
+                    }
+                }
+            }
         }
-    }
+    };
     Ok(HttpResponse::Ok().finish())
 }
 
@@ -187,6 +219,9 @@ async fn main() -> std::io::Result<()> {
     let crypto_signer_key = get_expected_env_var("CRYTPO_SIGNER_KEY");
     let api_key = get_expected_env_var("MAILGUN_API_KEY");
     let domain = get_expected_env_var("MAILGUN_DOMAIN");
+    let login_link_timeout_minutes_str = get_expected_env_var("LOGIN_LINK_TIMEOUT_MINUTES");
+    let login_link_timeout_minutes: u32 = login_link_timeout_minutes_str.parse().unwrap();
+    let login_link_timeout = Duration::from_secs(login_link_timeout_minutes as u64 * 60);
     // let app_data = itsdangerous::default_builder(crypto_signer_key).build();
     HttpServer::new(move || {
         App::new()
@@ -196,6 +231,7 @@ async fn main() -> std::io::Result<()> {
                     api_key: api_key.clone(),
                     domain: domain.clone(),
                 },
+                login_link_timeout: login_link_timeout.clone(),
             })
             .wrap(IdentityService::new(
                 CookieIdentityPolicy::new(&[0; 32])

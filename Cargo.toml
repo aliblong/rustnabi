@@ -38,6 +38,7 @@ itsdangerous = "*"
 snafu = "*"
 vec_map = { version = "*", features = ["serde"] }
 mailgun-rs = "*"
+base64 = "*"
 
 serde = { version = "*", features = ["derive"] }
 serde_yaml = "*"
