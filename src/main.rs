@@ -130,7 +130,7 @@ async fn handle_request_email(
     form: web::Form<LoginFormData>,
     data: web::Data<AppState>,
 ) -> Result<HttpResponse, Error> {
-    println!("{}", &form.email_address);
+    info!("{}", &form.email_address);
     let key = data.get_ref().crypto_signer_key.clone();
     let signer = itsdangerous::default_builder(key).build().into_timestamp_signer();
     send_login_email(
@@ -153,6 +153,30 @@ struct MailgunCredentials {
     domain: String,
 }
 
+fn get_expected_env_var(name: &str) -> String {
+    env::var(name).expect(&*format!("{} must be set (check `.env`)", name))
+}
+
+async fn handle_login(
+    app_state: web::Data<AppState>,
+    crypto_signed_email_address: web::Path<String>,
+) -> Result<HttpResponse, Error> {
+    let key = app_state.get_ref().crypto_signer_key.clone();
+    let signer = itsdangerous::default_builder(key).build().into_timestamp_signer();
+    // Deref to get the contenst of web::Path if it has a single element
+    // Otherwise, for e.g. web::Path<(String, String)>, use path.0
+    match signer.unsign(&**crypto_signed_email_address) {
+        Ok(payload) => {
+            println!("successful login: {}", payload.value());
+            //println!("{:?}", check_signed_val.timestamp());
+        }
+        Err(err) => {
+            println!("unsuccessful login: {}", *crypto_signed_email_address);
+        }
+    }
+    Ok(HttpResponse::Ok().finish())
+}
+
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
     pretty_env_logger::init();
@@ -160,9 +184,9 @@ async fn main() -> std::io::Result<()> {
         Err(e) => warn!("Error reading .env file: {}", e),
         _ => info!("Parsed .env file successfully"),
     }
-    let crypto_signer_key = "xddddddddd";
-    let api_key = env::var("MAILGUN_API_KEY").expect("MAILGUN_API_KEY must be set (check `.env`)");
-    let domain = env::var("MAILGUN_DOMAIN").expect("MAILGUN_DOMAIN must be set (check `.env`)");
+    let crypto_signer_key = get_expected_env_var("CRYTPO_SIGNER_KEY");
+    let api_key = get_expected_env_var("MAILGUN_API_KEY");
+    let domain = get_expected_env_var("MAILGUN_DOMAIN");
     // let app_data = itsdangerous::default_builder(crypto_signer_key).build();
     HttpServer::new(move || {
         App::new()
@@ -187,6 +211,9 @@ async fn main() -> std::io::Result<()> {
             })))
             .service(fs::Files::new("/static/", "static/"))
             .service(web::resource("/request_email").route(web::post().to(handle_request_email)))
+            .service(web::resource("/login/{crypto_signed_email_address}").route(
+                web::get().to(handle_login)
+            ))
     })
         .bind("127.0.0.1:8088")?
         .run()
